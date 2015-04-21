@@ -1,0 +1,129 @@
+package objects;
+
+import java.util.ArrayList;
+
+import sim.EmergentCrime;
+import sim.engine.SimState;
+import sim.field.geo.GeomVectorField;
+import sim.field.network.Network;
+import sim.util.Bag;
+import swise.objects.network.GeoNode;
+
+import com.vividsolutions.jts.geom.Coordinate;
+
+public class Citizen extends Agent {
+
+	public Citizen(String id, Coordinate position, Coordinate home,
+			Coordinate work, EmergentCrime world, double decayParam,
+			double speed, GeomVectorField layer, Network network) {
+		super(id, position, home, work, world, decayParam, speed, layer, network);
+		// TODO Auto-generated constructor stub
+	}
+	ArrayList <Object> property = new ArrayList <Object> ();
+	
+	double prROBability = 1;//0.05; // why would you even do this, why would you make this pun, may god have mercy on your soul
+
+	@Override
+	void pickDefaultActivity(){
+		
+		// 50% of the time, try to commit a crime against a random nearby target
+		if(world.random.nextDouble() > prROBability){
+			Bag neighbors = world.citizenLayer.getObjectsWithinDistance(this, 20);
+			neighbors.remove(this);
+			if(neighbors.size() > 0){
+				int success = commitCrime(neighbors.get(0), "robbery");
+			}
+		}
+		
+		// otherwise, continue along the preestablished course
+		else if(path != null){
+			navigate(world.resolution);
+		}
+
+		// if no such course exists, pick a random new point and move to it
+		else {
+			GeoNode gn = (GeoNode) world.roadNodes.get(world.random.nextInt(world.roadNodes.size()));
+			this.headFor(gn.geometry.getCoordinate());
+			
+		}
+	}
+
+	@Override
+	public void step(SimState state) {
+		
+		////////// Initial Checks ///////////////////////////////////////////////
+		
+		if(removed)
+			return;
+		
+		// make sure I'm only being called once per tick
+		if(lastMove >= state.schedule.getTime()) return;
+				
+		////////// BEHAVIOR //////////////////////////////////////////////////////
+		
+		pickDefaultActivity();
+
+		// update this Agent's information, and possibly remove them from the simulation if they've
+		// exited the bounds of the world
+		lastMove = state.schedule.getTime();
+	}
+	
+	/**
+	 * Commit a crime against the given target
+	 * @param target - the object which is being targeted
+	 * @param crimeType - the type of crime
+	 * @return 1 for a successfully completed crime, 0 for a crime which impacts the victim but is interrupted,
+	 * -1 for a failure to commit the crime
+	 */
+	int commitCrime(Object target, String crimeType){
+		
+		// Robbery crime
+		if(crimeType.equals("robbery")){
+			
+			// can only rob other Citizen agents - not robbery if it's against police 
+			if( !(target instanceof Citizen))
+				return -1;
+			
+			world.crimeLayer.addGeometry(world.new CrimeEvent(crimeType, target, this));
+			
+			Citizen victim = (Citizen) target;
+			
+			// can only rob a Citizen if it has property: the attempt won't be 
+			// successful if it lacks property, although it will still effect the victim.
+			// The robbery attempt has a 50% chance of succeeding even if the victim has property.
+			if(! victim.hasProperty() || world.random.nextDouble() < .5){
+				System.out.println(this.myID + " FAILED_TO_ROB " + victim.getID());
+				return 0;
+			}
+				
+			
+			// otherwise it's a successful robbery and the offender gains all of the targeted
+			// victim's property
+			else {
+				System.out.println(this.myID + " ROBBED " + victim.getID());
+				property.addAll(victim.transferProperty());
+				return 1;
+			}
+		}
+		
+		return -1;
+	}
+	
+	/**
+	 * Report a crime to the police
+	 * @param type - the type of crime being reported
+	 * @param location - the location of the described crime
+	 */
+	void reportCrime(String type, Coordinate location){
+		
+	}
+	
+	public String getID(){ return myID; }
+	
+	public boolean hasProperty(){ return this.property.size() > 0; }
+	public ArrayList <Object> transferProperty(){
+		ArrayList <Object> myProp = (ArrayList <Object>) property.clone();
+		property.clear();
+		return myProp;
+	}
+}
