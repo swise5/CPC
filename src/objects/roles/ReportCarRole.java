@@ -19,8 +19,6 @@ public class ReportCarRole extends OfficerRole {
 	Bag roadNodes = null;
 	MersenneTwisterFast random;
 	
-	public static double param_reportProb = .25;
-	public static int param_reportTimeCommitment = 60;
 
 
 	public ReportCarRole(Officer o, Bag roadNodes,
@@ -63,7 +61,7 @@ public class ReportCarRole extends OfficerRole {
 		// at the end of a meeting, may need to return to station
 		if(myActivity == activity_dealingWithTasking){
 			// return to station?
-			if(random.nextDouble() < param_reportProb){
+			if(random.nextDouble() < rolePlayer.getWorld().param_reportProb){
 				rolePlayer.setActivity(activity_onWayToTasking);
 				rolePlayer.setCurrentGoal(rolePlayer.getWork());
 				return 1;

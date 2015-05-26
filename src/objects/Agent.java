@@ -597,6 +597,7 @@ public class Agent extends TrafficAgent implements Serializable {
 	public void scheduleIn(double timeDiff){ world.schedule.scheduleOnce(world.schedule.getTime() + timeDiff, this);}
 	
 	public double getTime(){ return world.schedule.getTime(); }
+	public EmergentCrime getWorld(){ return world; }
 	
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////

@@ -20,73 +20,83 @@ public class Sweep {
 
 		Random rand = new Random();
 
-		String [] names = new String []{"completeRandom", "allTaskings"};
+//		String [] names = new String []{"completeRandom", "allTaskings"};
 //		String [] names = new String []{"allTaskings"};
 		double numRuns = 10;
 		HashMap <String, Edge> myCopyOfWeightings = new HashMap <String, Edge> ();
+		for(double rProb = .05; rProb <= .20; rProb += .05){
+			for(int timeCommit = 60; timeCommit <= 61; timeCommit += 61){
+				for(double tProb = .05; tProb <= .20; tProb += .05){
+					HashMap <String, Integer> edges = new HashMap <String, Integer> ();
+					
+					System.gc();
+					
+					for(int i = 0; i < numRuns; i++){
+						long seed = rand.nextLong();
+						EmergentCrime ec = new EmergentCrime(seed);
+						ec.taskingTypeBeingStudied = 1; 
+						ec.param_reportProb = rProb;
+						ec.param_reportTimeCommitment = timeCommit;
+						ec.param_transportRequestProb = tProb;
+						ec.start();
+						while(ec.schedule.getTime() < 43200)
+							ec.schedule.step(ec);
+						
+						for(Entry<Edge, Integer> entry: ec.edgeHeatmap.entrySet()){
+							String myEntryName = ((MasonGeometry)entry.getKey().info).getStringAttribute("FID_1");
+							if(!edges.containsKey(myEntryName)){
+								edges.put(myEntryName, entry.getValue());
+								myCopyOfWeightings.put(myEntryName, entry.getKey());
+							}
+							else{
+								int myVal = edges.get(myEntryName);
+								edges.put(myEntryName, myVal + entry.getValue());
+							}
+							
+						}
+						System.out.println(edges.size());
+						ec.finish();
+					}
+				
+					BufferedWriter myKmls = new BufferedWriter(new FileWriter("/Users/swise/postdoc/cpc/data/scratch/timeTest_fewerRides_" + (rProb * 100) + "_" + timeCommit + "_" + (tProb * 100) + "_"//names[j] + "_" 
+							+ numRuns + ".kml"));
+
+					// write a header
+					myKmls.write("<?xml version='1.0' encoding='UTF-8'?><kml xmlns='http://earth.google.com/kml/2.1'><Document><open>1</open>\n\n");
+
+					// create a record for each of the LineStrings 
+					for(Entry<String, Integer> entry: edges.entrySet()){
+						
+						// get the edge itself
+						Edge e = myCopyOfWeightings.get(entry.getKey());
+						String myName = ((MasonGeometry)e.info).getStringAttribute("ROADNAME");
+						
+						// take the average value over the number of runs
+						double normValue = entry.getValue() / numRuns;
+						
+						// create the string that represents the record
+						String edgey = "<Placemark><name>" + myName 
+								+ "</name>\n<description>" + normValue + "</description>"+
+								"<LineString>\n<extrude>" + normValue + "</extrude>\n<tessellate>1</tessellate>\n<altitudeMode>absolute</altitudeMode>\n<coordinates>";
+						LineString ls = (LineString)((MasonGeometry)e.info).geometry;
+						for(Coordinate c: ls.getCoordinates()){
+							edgey += c.x + "," + c.y + ",1\n";
+						}
+						edgey += "\t</coordinates>\n</LineString>\n</Placemark>\n";
+						
+						// write the record out
+						myKmls.write(edgey);
+
+					}
+
+					myKmls.write("</Document></kml>");
+					myKmls.close();					
+				}
+			}
+		}
 		for(int j = 1; j < 2; j++){
 
-			HashMap <String, Integer> edges = new HashMap <String, Integer> ();
-			
-			System.gc();
-			
-			for(int i = 0; i < numRuns; i++){
-				long seed = rand.nextLong();
-				EmergentCrime ec = new EmergentCrime(seed);
-				ec.taskingTypeBeingStudied = j; 
-				ec.start();
-				while(ec.schedule.getTime() < 43200)
-					ec.schedule.step(ec);
-				
-				for(Entry<Edge, Integer> entry: ec.edgeHeatmap.entrySet()){
-					String myEntryName = ((MasonGeometry)entry.getKey().info).getStringAttribute("FID_1");
-					if(!edges.containsKey(myEntryName)){
-						edges.put(myEntryName, entry.getValue());
-						myCopyOfWeightings.put(myEntryName, entry.getKey());
-					}
-					else{
-						int myVal = edges.get(myEntryName);
-						edges.put(myEntryName, myVal + entry.getValue());
-					}
-					
-				}
-				System.out.println(edges.size());
-				ec.finish();
-			}
-		
-			BufferedWriter myKmls = new BufferedWriter(new FileWriter("/Users/swise/postdoc/cpc/data/scratch/timeTest_fewerRides_" + names[j] + "_" 
-					+ numRuns + ".kml"));
 
-			// write a header
-			myKmls.write("<?xml version='1.0' encoding='UTF-8'?><kml xmlns='http://earth.google.com/kml/2.1'><Document><open>1</open>\n\n");
-
-			// create a record for each of the LineStrings 
-			for(Entry<String, Integer> entry: edges.entrySet()){
-				
-				// get the edge itself
-				Edge e = myCopyOfWeightings.get(entry.getKey());
-				String myName = ((MasonGeometry)e.info).getStringAttribute("ROADNAME");
-				
-				// take the average value over the number of runs
-				double normValue = entry.getValue() / numRuns;
-				
-				// create the string that represents the record
-				String edgey = "<Placemark><name>" + myName 
-						+ "</name>\n<description>" + normValue + "</description>"+
-						"<LineString>\n<extrude>" + normValue + "</extrude>\n<tessellate>1</tessellate>\n<altitudeMode>absolute</altitudeMode>\n<coordinates>";
-				LineString ls = (LineString)((MasonGeometry)e.info).geometry;
-				for(Coordinate c: ls.getCoordinates()){
-					edgey += c.x + "," + c.y + ",1\n";
-				}
-				edgey += "\t</coordinates>\n</LineString>\n</Placemark>\n";
-				
-				// write the record out
-				myKmls.write(edgey);
-
-			}
-
-			myKmls.write("</Document></kml>");
-			myKmls.close();
 		}
 
 	}

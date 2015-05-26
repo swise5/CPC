@@ -58,6 +58,11 @@ public class EmergentCrime extends SimState {
 
 	public static int ordering_officers = 100, ordering_civilians = 50, ordering_despatch = 25, ordering_firstContact = 1;
 	
+	public double param_reportProb = .25;
+	public double param_transportRequestProb = .25;
+	public int param_reportTimeCommitment = 60;
+
+	
 	/////////////// Data Sources ///////////////////////////////////////
 	
 	///// TEMPORARY ///////////////////////////

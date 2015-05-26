@@ -21,9 +21,6 @@ public class ResponseCarRole extends OfficerRole {
 	Despatch despatch = null;
 	long ticket = -1;
 	
-	public static double param_reportProb = .25;
-	public static double param_transportRequestProb = .25;
-	public static int param_reportTimeCommitment = 60;
 
 	public ResponseCarRole(Officer o, Bag roadNodes, MersenneTwisterFast random, Despatch despatch) {
 		super(o);
@@ -55,7 +52,7 @@ public class ResponseCarRole extends OfficerRole {
 		if(myActivity == activity_dealingWithTasking && ticket == -1){
 			
 			// transport request?
-			if(random.nextDouble() < param_transportRequestProb){
+			if(random.nextDouble() < rolePlayer.getWorld().param_transportRequestProb){
 				ticket = despatch.receiveRequestForTransport(rolePlayer.geometry.getCoordinate());
 				if(verbose)
 					System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "request transport");
@@ -63,7 +60,7 @@ public class ResponseCarRole extends OfficerRole {
 			}
 			
 			// return to station?
-			if(random.nextDouble() < param_reportProb){
+			if(random.nextDouble() < rolePlayer.getWorld().param_reportProb){
 				rolePlayer.setActivity(activity_onWayToTasking);
 				rolePlayer.setCurrentGoal(rolePlayer.getWork());
 				return 1;
@@ -139,7 +136,7 @@ public class ResponseCarRole extends OfficerRole {
 			rolePlayer.setCurrentGoal(rolePlayer.getWork());
 
 			rolePlayer.setMovementRule(Agent.movementRule_roadsOnly);
-			nextTaskingCost = param_reportTimeCommitment;
+			nextTaskingCost = rolePlayer.getWorld().param_reportTimeCommitment;
 			this.ticket = -1;
 
 			if(verbose)
