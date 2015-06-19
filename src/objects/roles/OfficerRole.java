@@ -64,13 +64,6 @@ public class OfficerRole {
 		// ************** BEGINNING THE DAY *********************
 		int myActivity = this.rolePlayer.getActivity();
 		
-		// USED TO OVERRIDE TODO TAK EIT OUT
-/*		if(myStatus == status_available && myActivity == activity_patrolling){
-			shiftEndTime = Integer.MAX_VALUE;
-			return time + executePersonalTasking();
-		}
-*/
-		
 		// if activated while off-duty, it's time for work
 		if (myStatus == status_offduty && rolePlayer.geometry.getCoordinate().distance(station) < EmergentCrime.resolution) {
 			// disabled while doing vehicles only
@@ -100,7 +93,7 @@ public class OfficerRole {
 		// ************** END OF DAY *********************
 
 		// deal with shift being over
-		if(time >= shiftEndTime){
+		if(time >= shiftEndTime){ //TODO need to add more paperwork time, come back in time for paperwork
 			
 			// if already at the station, go back! 
 			if((myActivity == activity_onWayToStation || myActivity == activity_noActivity) // either on way or already there

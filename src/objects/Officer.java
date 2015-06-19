@@ -23,6 +23,7 @@ public class Officer extends Agent {
 	OfficerRole role = null;
 
 	Vehicle currentVehicle = null;
+	boolean inVehicle = false;
 	
 	
 	int taskTime = -1;
@@ -35,13 +36,14 @@ public class Officer extends Agent {
 	String lastEdgeTravelled = "";
 	public String positionRecord = "";
 	
+	public static double minSpeed = 50;
 	public static double defaultSpeed = 200;//270;//535;
 	public static double topSpeed = 1000;//2000;
 	
 	int myShift = 0;
 	
 
-	public Officer(String id, Coordinate homeStation, Coordinate mainStation, EmergentCrime world, double speed, String taskingType) {
+	public Officer(String id, Coordinate homeStation, Coordinate mainStation, EmergentCrime world, double speed, String taskingType, Vehicle vehicle) {
 		super(id, homeStation, mainStation, world, world.officerLayer, world.roads);
 		
 		this.addIntegerAttribute("status", myStatus);
@@ -78,8 +80,8 @@ public class Officer extends Agent {
 			System.out.println("ERROR: failed tasking!!!");
 		
 		this.addIntegerAttribute("taskingType", myTaskingType);
-		minSpeed = 50;//135; // ~ 5mph
 		speed = defaultSpeed; // ~ 20mph
+		currentVehicle = vehicle;
 //		tasking = new OfficerRole(this);
 	}
 	
@@ -136,109 +138,57 @@ public class Officer extends Agent {
 	}
 
 
-	public double externalStep(SimState state){
-		
-		double nextActivation = role.activate(state.schedule.getTime());//chooseActivityForTick();
-		int currentStatus = ((OfficerRole)role).getStatus();
-		if(myStatus != currentStatus)
-			updateStatus(currentStatus);
-		return nextActivation;
-	}
-	
 	public void step(SimState state){
 		
 		double nextActivation = role.activate(state.schedule.getTime());//chooseActivityForTick();
+		
+		if(inVehicle) currentVehicle.updateAllOfficerPositions();
+		
 		int currentStatus = ((OfficerRole)role).getStatus();
-		if(myStatus != currentStatus)
+		if(myStatus != currentStatus){
 			updateStatus(currentStatus);
+			if(inVehicle) currentVehicle.updateAllOfficersStatus(currentStatus);
+		}
+		
 		state.schedule.scheduleOnce(nextActivation, this);
-
-//		timeOnDuty++;
-		/*
-		if(myStatus == status_offduty){
-			updateStatus(status_available);
-			System.out.println(world.schedule.getTime() + ": " + this.toString() + " CAME ON DUTY");
-		}
-		
-		// check to see if the Officer is involved in some tasking
-		if(path == null && hasTasking == true && taskTime > 0){
-			
-			taskTime--; // if so, spend this step on the task
-			
-			if(taskTime == 0){ // finished after this step! Reset
-				updateStatus(status_available);
-				hasTasking = false;
-				taskTime = -1;
-				world.recordTravelTime(ticksSpentTraveling);
-				System.out.println(world.schedule.getTime() + ": " + this.toString() + " FINISHED at " + this.geometry.toString());
-			}
-			
-			world.schedule.scheduleOnce(this, EmergentCrime.ordering_officers);
-			return;
-		}
-		
-		/*
-		Bag crimes = world.crimeLayer.getObjectsWithinDistance(this, crimeDetectionRadius);
-		if(crimes.size() > 0){
-			CrimeEvent ce = (CrimeEvent) crimes.get(0);
-			Agent a = ce.getOffenders().iterator().next();
-			int success = detain(a);
-		}
-		*/
-		
-/*		// done with a shift? Go off duty!
-		if(timeOnDuty > 96){
-			
-			// already at the station? Just go off duty!
-			if(geometry.getCoordinate().distance(work) < EmergentCrime.resolution){
-				updateStatus(status_offduty);
-				int time = this.getTime(4 + 8 * myShift, 0);
-				world.schedule.scheduleOnce(time, EmergentCrime.ordering_officers, this);
-				System.out.println(world.schedule.getTime() + ": " + this.toString() + " WENT OFF DUTY");
-				timeOnDuty = 0;
-				return;
-			}
-			
-			// otherwise head back to the station
-			else {
-				//updateStatus(status_occupied);
-				headFor(work, familiarRoadNetwork);
-			}
-		}
-		
-		// if the Officer has a place to go, go to it!
-		if(path != null){
-			navigate(world.resolution);
-			if(hasTasking == true)
-				ticksSpentTraveling++;
-		}
-
-		// if no such course exists, pick a random new point and move to it
-		else {
-			GeoNode gn = (GeoNode) world.roadNodes.get(world.random.nextInt(world.roadNodes.size()));
-			headFor(gn.geometry.getCoordinate(), familiarRoadNetwork);
-		}
-
-		world.schedule.scheduleOnce(this, EmergentCrime.ordering_officers);
-*/	}
+	}
 	
 	public int getStatus(){ return myStatus; }
 	public OfficerRole getRole(){ return this.role;}
 	public void setRole(OfficerRole newRole){ this.role = newRole; }
+	public boolean inVehicle(){ return currentVehicle != null; }
+
+	public void movedTo(Coordinate c){
+		updateLoc(c);
+	}
+
+	///////////// VEHICLE RELATED TOOLS /////////////
 	
-	public void enterVehicle(Vehicle v){
-		v.acquireOfficer(this);
+	public void assignedToNewVehicle(Vehicle v){
+		if(currentVehicle != null && currentVehicle.containsOfficer(this))
+			currentVehicle.loseOfficer(this);
 		currentVehicle = v;
 	}
 	
+	public void enterVehicle(){
+		currentVehicle.acquireOfficer(this);
+		inVehicle = true;
+	}
+	
+	
 	public void leaveVehicle(){
 		if(currentVehicle == null){
+			System.out.println("ERROR: NO VEHICLE");
+			return;
+		}
+		else if(!inVehicle){
 			System.out.println("ERROR: NOT IN VEHICLE");
 			return;
 		}
 		currentVehicle.loseOfficer(this);
-		currentVehicle = null;
+		inVehicle = false;
 	}
+	
+	///////////// END VEHICLE RELATED TOOLS /////////////
 
-	public boolean inVehicle(){ return currentVehicle != null; }
 }

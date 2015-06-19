@@ -336,104 +336,104 @@ public class EmergentCrime extends SimState {
 		// KENTISH TOWN
 		GeoNode myNode = stationNodes.get(3);
 		Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "transport");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "transport", null);
 		officers.add(off);				
 
 		// WEST HAMPSTEAD
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 		
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report", null);
 		officers.add(off);
 		
 		// ALBANY
 
 		myNode = stationNodes.get(0);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report", null);
 		officers.add(off);				
 
 		// HOLBORN
 		
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "transport");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "transport", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report", null);
 		officers.add(off);				
 
 		// HAMPSTEAD
 		
 		myNode = stationNodes.get(1);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 	}
 	
@@ -447,104 +447,104 @@ public class EmergentCrime extends SimState {
 		// KENTISH TOWN
 		GeoNode myNode = stationNodes.get(3);
 		Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		// WEST HAMPSTEAD
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 		
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 		
 		// ALBANY
 
 		myNode = stationNodes.get(0);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		// HOLBORN
 		
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);				
 
 		// HAMPSTEAD
 		
 		myNode = stationNodes.get(1);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 		officers.add(off);
 	}
 	
@@ -553,7 +553,7 @@ public class EmergentCrime extends SimState {
 		for(int i = 0; i < 19; i++){
 			GeoNode myNode = (GeoNode) roadNodes.get(random.nextInt(roadNodes.size()));
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol", null);
 			officers.add(off);							
 		}
 
