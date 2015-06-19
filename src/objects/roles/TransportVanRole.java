@@ -36,6 +36,9 @@ public class TransportVanRole extends OfficerRole {
 			// if arrived at scene of incident, deal with it
 			if(rolePlayer.arrivedAtGoal()){
 				
+				myStatus = OfficerRole.status_atSceneOfIncident;
+				rolePlayer.updateStatus(OfficerRole.status_atSceneOfIncident);
+				
 				Bag possibleOthers = world.officerLayer.getObjectsWithinDistance(rolePlayer.geometry, 10000);//EmergentCrime.resolution); // TODO: wtf why
 				boolean successful = false;
 				for(Object o: possibleOthers){
@@ -60,6 +63,8 @@ public class TransportVanRole extends OfficerRole {
 		}
 
 		else if (myActivity == activity_dealingWithTasking) {
+			myStatus = OfficerRole.status_committedAndUnavailable;
+			rolePlayer.updateStatus(OfficerRole.status_committedAndUnavailable);
 			rolePlayer.setCurrentGoal(rolePlayer.getWork());
 			rolePlayer.setActivity(activity_onWayToStation);
 			return 1;
@@ -67,7 +72,9 @@ public class TransportVanRole extends OfficerRole {
 
 		else if(myActivity == activity_onWayToStation){
 			if(rolePlayer.arrivedAtGoal()){
-				myStatus = status_available;
+				myStatus = OfficerRole.status_available_office;
+				rolePlayer.updateStatus(OfficerRole.status_available_office);
+				myStatus = status_available_resumePatrol;
 				rolePlayer.setActivity(activity_noActivity);
 				return 15; // deal with the stuff
 			}
@@ -87,10 +94,10 @@ public class TransportVanRole extends OfficerRole {
 
 	public void redirectToResponse(Coordinate location, long ticket) {
 
-		myStatus = status_occupied;
+		myStatus = status_committedAndUnavailable;
 		rolePlayer.setActivity(activity_onWayToTasking);
 		rolePlayer.setCurrentGoal(location);;
-		rolePlayer.updateStatus(status_occupied);
+		rolePlayer.updateStatus(status_committedAndUnavailable);
 		this.ticket = ticket;
 	}
 }

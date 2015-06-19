@@ -31,9 +31,10 @@ public class Despatch implements Steppable {
 	TreeSet <CallEvent> CAD;
 	ArrayList <Officer> officers = new ArrayList <Officer> ();
 	HashMap <Coordinate, Long> requestTickets = new HashMap <Coordinate, Long> ();
+	HashMap <Integer, ArrayList <Officer>> despatchedResponseCars = new HashMap <Integer, ArrayList <Officer>> ();
 	ArrayList <Coordinate> requestsForTransport = new ArrayList <Coordinate> ();
 
-	public static int param_responseCarTimeCommitment = 60;
+	public static int param_responseCarTimeCommitment = 20;
 	
 	public Despatch(TreeSet <CallEvent> CAD, ArrayList <Officer> officers, EmergentCrime world){
 		super();
@@ -50,38 +51,51 @@ public class Despatch implements Steppable {
 		while(CAD.size() > 0 && possiblyAvailable){
 			
 			CallEvent event = CAD.first();
-			boolean tasked = false;
+			int numOfficersRequested = 3 - event.getGrade(); // 3 for I, 2 for S, 1 for E
+			int tasked = 0;
+			int incidentID = world.random.nextInt();
+			ArrayList <Officer> assignedResponseCars = new ArrayList <Officer> ();
 			
 			Bag nearbyOfficers = new Bag();
 			double searchDistance = 100;
-			while(nearbyOfficers.size() < officers.size() && !tasked){
+			while(nearbyOfficers.size() < officers.size() && tasked < numOfficersRequested){
 				
 				nearbyOfficers = world.officerLayer.getObjectsWithinDistance(event.getLocation(), searchDistance);
 
 				for(Object obj: nearbyOfficers){
 					
 					Officer o = (Officer) obj;
-					if(o.getStatus() != OfficerRole.status_available) 
+					int oStatus = o.getStatus();
+					
+					// if the Officer is not in an available state, just continue
+					if( !(oStatus == OfficerRole.status_available_resumePatrol || oStatus == OfficerRole.status_committedButDeployable 
+							|| oStatus == OfficerRole.status_available_office || oStatus == OfficerRole.status_refs) )
 						continue;
 //					if(o.getSpeed() < 1000 && searchDistance > 1000) // past a certain distance, only take cars
 //						continue;
 					OfficerRole tasking = o.getRole();
 					if(tasking instanceof ResponseCarRole){
-						((ResponseCarRole)tasking).redirectToResponse(event.getLocation().getCoordinate(), param_responseCarTimeCommitment);//3 + state.random.nextInt(22));
+						((ResponseCarRole)tasking).redirectToResponse(event.getLocation().getCoordinate(), param_responseCarTimeCommitment, incidentID);
+						//3 + state.random.nextInt(22));
+						assignedResponseCars.add(o);
+						tasked++;
 					}
-					tasked = true;
-					break;
-					
+					if(tasked >= numOfficersRequested)
+						break;
 				}
 				
-				if(tasked)
+				if(tasked >= numOfficersRequested ||	// have found enough officers
+						tasked > 0 && officers.size() == nearbyOfficers.size()){ // only one officer available, will have to do! 
 					CAD.remove(event);
-				else
+					despatchedResponseCars.put(incidentID, assignedResponseCars);
+					tasked = 10; // break out of the loop
+				}
+				else // search further!!
 					searchDistance *= 2;
 			}
 			
-			if(!tasked)
-				possiblyAvailable = false;
+			if(tasked < numOfficersRequested)
+				possiblyAvailable = false; // no one else is free to assign, let it go
 
 		}
 
@@ -108,7 +122,11 @@ public class Despatch implements Steppable {
 					
 					if(finished) continue;
 					Officer o = (Officer) obj;
-					if(o.getStatus() != OfficerRole.status_available) 
+					int oStatus = o.getStatus();
+					
+					// if the Officer is not in an available state, just continue
+					if( !(oStatus == OfficerRole.status_available_resumePatrol || oStatus == OfficerRole.status_committedButDeployable 
+							|| oStatus == OfficerRole.status_available_office || oStatus == OfficerRole.status_refs) )
 						continue;
 					OfficerRole tasking = o.getRole();
 					if(tasking == null){
@@ -154,5 +172,25 @@ public class Despatch implements Steppable {
 		
 		requestsForTransport.add(location);
 		return ticket;
+	}
+	
+	/**
+	 * 
+	 * @param incidentID
+	 * @param o - the responding officer who has found the incident does not warrant multiple officers
+	 */
+	public void receiveReportOfDowngradeInSeverity(int incidentID, Officer o){
+		ArrayList <Officer> assigned = despatchedResponseCars.get(incidentID);
+		for(Officer offs: assigned){
+			if(offs == o) continue; // don't update the guy who called
+			if(offs.arrivedAtGoal()){ // anyone who's already there can hang out until they need to be despatched again
+				offs.updateStatus(OfficerRole.status_committedButDeployable);
+				offs.setActivity(OfficerRole.activity_dealingWithTasking);
+			}
+			else {
+				offs.updateStatus(OfficerRole.status_available_resumePatrol);
+				offs.setActivity(OfficerRole.activity_patrolling);
+			}
+		}
 	}
 }

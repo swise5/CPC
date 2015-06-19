@@ -39,7 +39,7 @@ public class Officer extends Agent {
 	public static double topSpeed = 1000;//2000;
 	
 	int myShift = 0;
-	
+	int laggedStatus = OfficerRole.status_offDuty;
 
 	public Officer(String id, Coordinate homeStation, Coordinate mainStation, EmergentCrime world, double speed, String taskingType) {
 		super(id, homeStation, mainStation, world, world.officerLayer, world.roads);
@@ -153,6 +153,11 @@ public class Officer extends Agent {
 			updateStatus(currentStatus);
 		state.schedule.scheduleOnce(nextActivation, this);
 
+		if(laggedStatus != myStatus){
+			world.statusChanges.add(((int)state.schedule.getTime()) + "\t" + myStatus  + "\t" + this.myID  + "\t" + this.geometry.getCoordinate().toString() + "\n");
+		}
+		laggedStatus = myStatus;
+		
 //		timeOnDuty++;
 		/*
 		if(myStatus == status_offduty){

@@ -60,6 +60,7 @@ public class EmergentCrime extends SimState {
 	
 	public double param_reportProb = .25;
 	public double param_transportRequestProb = .25;
+	public double param_redeployProb = .75;
 	public int param_reportTimeCommitment = 60;
 
 	
@@ -120,6 +121,8 @@ public class EmergentCrime extends SimState {
 	/////////////// END Objects //////////////////////////////////////////
 
 	public HashMap <Edge, Integer> edgeHeatmap = new HashMap <Edge, Integer> ();
+	
+	public ArrayList <String> statusChanges = new ArrayList <String> ();
 	
 	///////////////////////////////////////////////////////////////////////////
 	/////////////////////////// BEGIN functions ///////////////////////////////
@@ -333,8 +336,37 @@ public class EmergentCrime extends SimState {
 	 */
 	void testAgents(ArrayList <GeoNode> stationNodes){
 
-		// KENTISH TOWN
-		GeoNode myNode = stationNodes.get(3);
+		// ALBANY = 0
+		// HAMPSTEAD = 1
+		// HOLBORN = 2
+		// KENTISH TOWN = 3
+		// WEST HAMPSTEAD = 4
+ 
+		int [] patrolStationList = {3, 3, 3, 3, 3, 4, 4, 4, 2, 2, 1};
+		for(int i: patrolStationList){
+			GeoNode myNode = stationNodes.get(i);
+			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+			officers.add(off);				
+		}
+		
+		int [] reportStationList = {3, 3, 4, 0, 2, 2};
+		for(int i: reportStationList){
+			GeoNode myNode = stationNodes.get(i);
+			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+			officers.add(off);				
+		}
+
+		int [] transportStationList = {3, 2};
+		for(int i: transportStationList){
+			GeoNode myNode = stationNodes.get(i);
+			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+			officers.add(off);				
+		}
+
+/**		GeoNode myNode = stationNodes.get(3);
 		Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
 		Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
 		officers.add(off);				
@@ -374,7 +406,6 @@ public class EmergentCrime extends SimState {
 		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "transport");
 		officers.add(off);				
 
-		// WEST HAMPSTEAD
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
 		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
@@ -395,14 +426,12 @@ public class EmergentCrime extends SimState {
 		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
 		officers.add(off);
 		
-		// ALBANY
 
 		myNode = stationNodes.get(0);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
 		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
 		officers.add(off);				
 
-		// HOLBORN
 		
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
@@ -429,12 +458,12 @@ public class EmergentCrime extends SimState {
 		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
 		officers.add(off);				
 
-		// HAMPSTEAD
 		
 		myNode = stationNodes.get(1);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
 		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
 		officers.add(off);
+		*/
 	}
 	
 	/**
@@ -560,65 +589,6 @@ public class EmergentCrime extends SimState {
 
 	}
 	
-	public void setupReporter(){
-		// REPORTER
-			try {
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			this.schedule.scheduleRepeating(0, 10000, new Steppable(){
-
-				DecimalFormat formatter = new DecimalFormat("#.##");
-				
-				@Override
-				public void step(SimState state) {
-					try {
-						int time = (int) state.schedule.getTime();
-						String speeds = time + "", sentiments = "";
-						int numSentAgents = 0;
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-
-			}, 12);
-			
-			/*	schedule.scheduleRepeating(0, EmergentCrime.ordering_firstContact, new Steppable(){
-
-			@Override
-			public void step(SimState state) {
-				GeoNode myNode = (GeoNode) districtNodes.get(random.nextInt(districtNodes.size()));
-				int level = random.nextInt(4);
-				System.out.println(state.schedule.getTime() + ": Level " + level + " CALL RECEIVED from " + myNode.geometry.toString());
-				firstContact.receiveCall(null, new CallEvent(level, (Geometry) myNode.geometry.clone()));
-				crimeLayer.addGeometry(myNode);
-			}
-			
-		}, 10);
-		
-/*			schedule.scheduleRepeating(0, 0, new Steppable(){
-
-			@Override
-			public void step(SimState state) {
-				
-				// save a list of all the crime events that have taken place since the last
-				// time step
-				ArrayList <CrimeEvent> events = new ArrayList <CrimeEvent> ();
-				for(Object o: crimeLayer.getGeometries())
-					events.add((CrimeEvent)o);
-				
-				crimeEventRecord.add(events);
-
-				crimeLayer.clear();
-				crimeLayer.setMBR(MBR);
-			}
-			
-		});
-*/
-	}
-	
 	AStar pathfinder = new AStar();
 	void connectToMajorNetwork(GeoNode n, Network existingNetwork) {
 
@@ -712,11 +682,26 @@ public class EmergentCrime extends SimState {
 			myKmls.write("</Document></kml>");
 
 			myKmls.close();
+			
+			BufferedWriter myStatusChanges = new BufferedWriter(new FileWriter("/Users/swise/postdoc/cpc/data/statusChanges_"+ mySeed +  ".txt"));
+			for(String s: statusChanges){
+				myStatusChanges.write(s);
+			}
+			myStatusChanges.close();
+
 		} catch (Exception e){
 			e.printStackTrace();
 		}
 	}
 
+
+	public void writeOutStatuses(String dir, String filename) throws Exception {
+		BufferedWriter myStatusChanges = new BufferedWriter(new FileWriter(dir + filename));
+		for(String s: statusChanges){
+			myStatusChanges.write(s);
+		}
+		myStatusChanges.close();
+	}
 	
 	//////////////////////////////////////////////
 	////////// UTILITIES /////////////////////////

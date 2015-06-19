@@ -20,7 +20,7 @@ public class ResponseCarRole extends OfficerRole {
 	int nextTaskingCost = -1;
 	Despatch despatch = null;
 	long ticket = -1;
-	
+	int myIncident = -1;
 
 	public ResponseCarRole(Officer o, Bag roadNodes, MersenneTwisterFast random, Despatch despatch) {
 		super(o);
@@ -72,8 +72,12 @@ public class ResponseCarRole extends OfficerRole {
 			
 			// if arrived at scene of incident, deal with it
 			if(rolePlayer.arrivedAtGoal()){
-				
+				myStatus = status_atSceneOfIncident;
 				rolePlayer.setActivity(activity_dealingWithTasking);
+				
+				if(random.nextDouble() < rolePlayer.getWorld().param_redeployProb)
+					despatch.receiveReportOfDowngradeInSeverity(myIncident, (Officer)rolePlayer);
+				
 				if(verbose)
 					System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "deal with incident");
 
@@ -86,7 +90,7 @@ public class ResponseCarRole extends OfficerRole {
 		}
 
 		else if (myActivity != activity_patrolling) {
-			myStatus = status_available;
+			myStatus = status_available_resumePatrol;
 
 			rolePlayer.setActivity(activity_patrolling);
 			rolePlayer.setSpeed(Officer.defaultSpeed);
@@ -111,14 +115,16 @@ public class ResponseCarRole extends OfficerRole {
 		return 1;
 	}
 
-	public void redirectToResponse(Coordinate location, int time) {
+	public void redirectToResponse(Coordinate location, int time, int incident) {
 
-		myStatus = status_occupied;
+		myIncident = incident;
+		myStatus = OfficerRole.status_enRouteToIncident;
+		
 		rolePlayer.setActivity(activity_onWayToTasking);
 		rolePlayer.setSpeed(Officer.topSpeed);
-		rolePlayer.setMovementRule(Agent.movementRule_roadsOnlyNoLaws);
 		rolePlayer.setCurrentGoal(location);
-		rolePlayer.updateStatus(OfficerRole.status_occupied);
+		rolePlayer.setMovementRule(Agent.movementRule_roadsOnlyNoLaws);
+		rolePlayer.updateStatus(OfficerRole.status_enRouteToIncident);
 		nextTaskingCost = time;
 
 		if(verbose)
@@ -131,7 +137,9 @@ public class ResponseCarRole extends OfficerRole {
 			myStatus = status_available;
 			rolePlayer.setActivity(activity_patrolling);
 			*/
+			myStatus = OfficerRole.status_committedButDeployable;
 
+			rolePlayer.updateStatus(OfficerRole.status_committedButDeployable);
 			rolePlayer.setActivity(activity_onWayToTasking);
 			rolePlayer.setCurrentGoal(rolePlayer.getWork());
 

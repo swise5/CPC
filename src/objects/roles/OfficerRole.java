@@ -20,10 +20,17 @@ public class OfficerRole {
 
 	// STATUSES ////////////
 	
-	public static int status_offduty = 0;
-	public static int status_occupied = 1;
-	public static int status_refs = 2;
-	public static int status_available = 3;
+	public static int status_onDuty = 1;
+	public static int status_available_resumePatrol = 2;
+	public static int status_available_office = 3;
+	public static int status_refs = 4;
+	public static int status_enRouteToIncident = 5;
+	public static int status_atSceneOfIncident = 6;
+	public static int status_committedButDeployable = 7;
+	public static int status_committedAndUnavailable = 8;
+	public static int status_prisonerEscort = 9;
+	public static int status_atCourt = 10;
+	public static int status_offDuty = 11;
 	
 	// ACTIVITIES ////////////
 
@@ -72,13 +79,13 @@ public class OfficerRole {
 */
 		
 		// if activated while off-duty, it's time for work
-		if (myStatus == status_offduty && rolePlayer.geometry.getCoordinate().distance(station) < EmergentCrime.resolution) {
+		if (myStatus == status_offDuty && rolePlayer.geometry.getCoordinate().distance(station) < EmergentCrime.resolution) {
 			// disabled while doing vehicles only
 			// myStatus = status_occupied;
 			// rolePlayer.setActivity(activity_briefing);
 			if(verbose)
 				System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "goes on duty");
-			myStatus = status_available;
+			myStatus = status_available_resumePatrol;
 			rolePlayer.setActivity(activity_noActivity);
 			// rolePlayer.setActivity(activity_patrolling);
 			shiftEndTime = (int) (time + 60 * 8);
@@ -87,9 +94,9 @@ public class OfficerRole {
 			// return time + 30;
 		}
 
-		// if just finished with the car check, ready to go! Execute perosonal tasking
+		// if just finished with the car check, ready to go! Execute personal tasking
 		if(myActivity == activity_carCheck){
-			myStatus = status_available;
+			myStatus = status_available_resumePatrol;
 			rolePlayer.setActivity(activity_noActivity);
 			shiftEndTime = (int)(time + 60 * 8);
 			if(verbose)
@@ -109,16 +116,18 @@ public class OfficerRole {
 				if(verbose)
 					System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "-- change shift");
 
-				myStatus = status_occupied;
+				myStatus = status_committedAndUnavailable;
 				rolePlayer.setActivity(activity_carCheck);
 				return time + 15;
 			}
+			// if on the way to the stations and not there yet, keep moving
 			else if(myActivity == activity_onWayToStation && !rolePlayer.arrivedAtGoal()){
 				rolePlayer.navigate(EmergentCrime.resolution);
 				return time + 1;
 			}
+			// otherwise return to the station
 			else{
-				myStatus = status_occupied;
+				myStatus = status_committedAndUnavailable;
 				rolePlayer.setActivity(activity_onWayToStation);
 				rolePlayer.setCurrentGoal(station);
 
@@ -136,6 +145,7 @@ public class OfficerRole {
 				&& rolePlayer.getBase().distance(rolePlayer.geometry.getCoordinate()) > EmergentCrime.resolution){
 			// if it's time to go back to the station: set activity, set destination, and 
 			// schedule self to go back
+			myStatus = status_committedButDeployable;
 			rolePlayer.setActivity(activity_onWayToStation);
 			rolePlayer.setCurrentGoal(station);
 

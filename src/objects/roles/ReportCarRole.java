@@ -48,6 +48,7 @@ public class ReportCarRole extends OfficerRole {
 			// if arrived at scene of incident, deal with it
 			if(rolePlayer.arrivedAtGoal()){
 				
+				myStatus = status_committedButDeployable;
 				rolePlayer.setActivity(activity_dealingWithTasking);
 				
 				return (random.nextInt(4) + 1) * 15;
@@ -75,10 +76,11 @@ public class ReportCarRole extends OfficerRole {
 			// if there's no CallEvent in the queue, just patrol the area
 			if (callEvent != null) {
 
-				myStatus = status_occupied;
+				myStatus = status_committedAndUnavailable;
+				
 				rolePlayer.setActivity(activity_onWayToTasking);
 				rolePlayer.setCurrentGoal(callEvent.getLocation().getCoordinate());
-				rolePlayer.updateStatus(OfficerRole.status_occupied);
+				rolePlayer.updateStatus(OfficerRole.status_committedAndUnavailable);
 
 				return 1;
 			}
@@ -87,7 +89,7 @@ public class ReportCarRole extends OfficerRole {
 		// otherwise transition into patrolling
 		if(myActivity != activity_patrolling){
 			myActivity = activity_patrolling;
-			myStatus = status_available;
+			myStatus = status_available_resumePatrol;
 		}
 		
 		if (rolePlayer.getGoal() != null && !rolePlayer.arrivedAtGoal())

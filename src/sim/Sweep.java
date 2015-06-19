@@ -19,16 +19,19 @@ public class Sweep {
 	public static void main(String[] args) throws IOException {
 
 		Random rand = new Random();
+		String dir = "/Users/swise/postdoc/cpc/data/scratch/statusChecks/";
 
 //		String [] names = new String []{"completeRandom", "allTaskings"};
 //		String [] names = new String []{"allTaskings"};
-		double numRuns = 10;
+		double numRuns = 20;
 		HashMap <String, Edge> myCopyOfWeightings = new HashMap <String, Edge> ();
-		for(double rProb = .05; rProb <= .20; rProb += .05){
-			for(int timeCommit = 60; timeCommit <= 61; timeCommit += 61){
-				for(double tProb = .05; tProb <= .20; tProb += .05){
+		for(double rProb = .05; rProb <= .25; rProb += .1){
+			for(int timeCommit = 15; timeCommit <= 60; timeCommit += 15){
+				for(double tProb = .05; tProb <= .15; tProb += .05){
 					HashMap <String, Integer> edges = new HashMap <String, Integer> ();
 					
+					String myFileName = "statusChecks_" + (rProb * 100) + "_" + timeCommit + "_" + (tProb * 100) + numRuns;
+
 					System.gc();
 					
 					for(int i = 0; i < numRuns; i++){
@@ -55,11 +58,15 @@ public class Sweep {
 							
 						}
 						System.out.println(edges.size());
-						ec.finish();
+						try {
+							ec.writeOutStatuses(dir, myFileName + "_" + i + ".txt");
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						//ec.finish();
 					}
 				
-					BufferedWriter myKmls = new BufferedWriter(new FileWriter("/Users/swise/postdoc/cpc/data/scratch/timeTest_fewerRides_" + (rProb * 100) + "_" + timeCommit + "_" + (tProb * 100) + "_"//names[j] + "_" 
-							+ numRuns + ".kml"));
+					BufferedWriter myKmls = new BufferedWriter(new FileWriter(dir + myFileName + ".kml"));
 
 					// write a header
 					myKmls.write("<?xml version='1.0' encoding='UTF-8'?><kml xmlns='http://earth.google.com/kml/2.1'><Document><open>1</open>\n\n");
@@ -94,10 +101,17 @@ public class Sweep {
 				}
 			}
 		}
-		for(int j = 1; j < 2; j++){
-
-
-		}
 
 	}
+	
+	/**
+		double numRuns = 10;
+		HashMap <String, Edge> myCopyOfWeightings = new HashMap <String, Edge> ();
+		for(double rProb = .05; rProb <= .20; rProb += .05){
+			for(int timeCommit = 60; timeCommit <= 61; timeCommit += 61){
+				for(double tProb = .05; tProb <= .20; tProb += .05){
+					HashMap <String, Integer> edges = new HashMap <String, Integer> ();
+					
+	 * 
+	 */
 }
