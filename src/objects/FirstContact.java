@@ -48,7 +48,7 @@ public class FirstContact implements Steppable {
 			
 			if(call.getGrade() == 3) // it was redirected - no need to take any action
 				return 0;
-			if(call.getGrade() == 2)
+			if(call.getGrade() == 2 && !world.rolesDisabled)
 				extended_CAD.add(call);
 			else
 				urgent_CAD.add(call);

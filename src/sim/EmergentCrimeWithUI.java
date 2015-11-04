@@ -225,7 +225,7 @@ public class EmergentCrimeWithUI extends GUIState {
 		        	// specify the timestep here
 		        	Date startDate;
 					try {
-						startDate = ft.parse("2011-03-01 7:00 GMT");
+						startDate = ft.parse("2011-03-01 0:00 GMT");
 				        Date time = new Date((int)state.schedule.getTime() * 60000 + startDate.getTime());
 				        s = ft.format(time);	
 					} catch (ParseException e) {
@@ -270,7 +270,7 @@ public class EmergentCrimeWithUI extends GUIState {
 		EmergentCrimeWithUI gui =  null;
 		
 		try {
-			EmergentCrime lb = new EmergentCrime(12345);//System.currentTimeMillis());
+			EmergentCrime lb = new EmergentCrime(System.currentTimeMillis());
 			gui = new EmergentCrimeWithUI(lb);
 		} catch (Exception ex){
 			System.out.println(ex.getStackTrace());

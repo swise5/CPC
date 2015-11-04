@@ -9,6 +9,7 @@ import com.vividsolutions.jts.geom.Geometry;
 
 import objects.roles.OfficerRole;
 import objects.roles.ResponseCarRole;
+import objects.roles.ReportCarRole;
 import objects.roles.TransportVanRole;
 import sim.EmergentCrime;
 import sim.EmergentCrime.CallEvent;
@@ -33,8 +34,6 @@ public class Despatch implements Steppable {
 	HashMap <Coordinate, Long> requestTickets = new HashMap <Coordinate, Long> ();
 	HashMap <Integer, ArrayList <Officer>> despatchedResponseCars = new HashMap <Integer, ArrayList <Officer>> ();
 	ArrayList <Coordinate> requestsForTransport = new ArrayList <Coordinate> ();
-
-	public static int param_responseCarTimeCommitment = 20;
 	
 	public Despatch(TreeSet <CallEvent> CAD, ArrayList <Officer> officers, EmergentCrime world){
 		super();
@@ -51,14 +50,17 @@ public class Despatch implements Steppable {
 		while(CAD.size() > 0 && possiblyAvailable){
 			
 			CallEvent event = CAD.first();
-			int numOfficersRequested = 3 - event.getGrade(); // 3 for I, 2 for S, 1 for E
+//			int numOfficersRequested = 3 - event.getGrade(); // 3 for I, 2 for S, 1 for E
 			int tasked = 0;
-			int incidentID = world.random.nextInt();
+			int incidentID = event.getIncidentNumber();
 			ArrayList <Officer> assignedResponseCars = new ArrayList <Officer> ();
+			if(despatchedResponseCars.containsKey(incidentID)){
+				assignedResponseCars = despatchedResponseCars.get(incidentID);
+			}
 			
 			Bag nearbyOfficers = new Bag();
 			double searchDistance = 100;
-			while(nearbyOfficers.size() < officers.size() && tasked < numOfficersRequested){
+			while(nearbyOfficers.size() < officers.size() && tasked < 1){//numOfficersRequested){
 				
 				nearbyOfficers = world.officerLayer.getObjectsWithinDistance(event.getLocation(), searchDistance);
 
@@ -74,17 +76,18 @@ public class Despatch implements Steppable {
 //					if(o.getSpeed() < 1000 && searchDistance > 1000) // past a certain distance, only take cars
 //						continue;
 					OfficerRole tasking = o.getRole();
-					if(tasking instanceof ResponseCarRole){
-						((ResponseCarRole)tasking).redirectToResponse(event.getLocation().getCoordinate(), param_responseCarTimeCommitment, incidentID);
+					if(tasking instanceof ResponseCarRole || world.rolesDisabled){
+						tasking.redirectToResponse(event.getLocation().getCoordinate(), world.param_responseCarTimeCommitment, incidentID);
 						//3 + state.random.nextInt(22));
 						assignedResponseCars.add(o);
 						tasked++;
-					}
-					if(tasked >= numOfficersRequested)
 						break;
+					}
+//					if(tasked >= numOfficersRequested)
+//						break;
 				}
 				
-				if(tasked >= numOfficersRequested ||	// have found enough officers
+				if(tasked >= 1 ||//numOfficersRequested ||	// have found enough officers
 						tasked > 0 && officers.size() == nearbyOfficers.size()){ // only one officer available, will have to do! 
 					CAD.remove(event);
 					despatchedResponseCars.put(incidentID, assignedResponseCars);
@@ -94,7 +97,7 @@ public class Despatch implements Steppable {
 					searchDistance *= 2;
 			}
 			
-			if(tasked < numOfficersRequested)
+			if(tasked < 1)//numOfficersRequested)
 				possiblyAvailable = false; // no one else is free to assign, let it go
 
 		}

@@ -36,28 +36,41 @@ public class TransportVanRole extends OfficerRole {
 			// if arrived at scene of incident, deal with it
 			if(rolePlayer.arrivedAtGoal()){
 				
+				// is this a normal call, or have we been activated in a special case? If the former, look around for other officers
+				if(ticket != -1){
+						
+					// look around for the officer who called in support from you
+					Bag possibleOthers = world.officerLayer.getObjectsWithinDistance(rolePlayer.geometry, 10000);//EmergentCrime.resolution); // TODO: wtf why
+					boolean successful = false;
+					for(Object o: possibleOthers){
+						Officer off = (Officer) o;
+	
+						if(off.getRole() instanceof ResponseCarRole){ // if this is a response car, try to interface with it
+							successful = (successful || ((ResponseCarRole)off.getRole()).interfaceWithTransportVan(ticket));
+						}
+							
+					}
+					if(!successful){ // if none of these were successful, broadcast this problem
+						System.out.println("unsuccessful meetup");
+						return 1; // try again next tick
+					}
+				}
+
+				// otherwise you found 'em! Update your status and get on with transferring
 				myStatus = OfficerRole.status_atSceneOfIncident;
 				rolePlayer.updateStatus(OfficerRole.status_atSceneOfIncident);
-				
-				Bag possibleOthers = world.officerLayer.getObjectsWithinDistance(rolePlayer.geometry, 10000);//EmergentCrime.resolution); // TODO: wtf why
-				boolean successful = false;
-				for(Object o: possibleOthers){
-					Officer off = (Officer) o;
-
-					if(off.getRole() instanceof ResponseCarRole){
-						successful = (successful || ((ResponseCarRole)off.getRole()).interfaceWithTransportVan(ticket));
-					}
-						
-				}
-				if(!successful){
-					System.out.println("unsuccessful meetup");
-				}
 				rolePlayer.setActivity(activity_dealingWithTasking);
-				ticket = -1;
-				return 15; // 15 minutes to get them into the car and secured
+				
+				// if a special activation, it'll take a full response time to deal with it
+				if(ticket == -1)
+					return world.param_responseCarTimeCommitment; 
+					
+				// otherwise
+				ticket = -1; // reset your ticket
+				return (15 / EmergentCrime.temporalResolution_minutesPerTick); // 15 minutes to get them into the car and secured
 			}
 			else
-				rolePlayer.navigate(EmergentCrime.resolution);
+				rolePlayer.navigate(EmergentCrime.spatialResolution);
 			
 			return 1;
 		}
@@ -76,17 +89,17 @@ public class TransportVanRole extends OfficerRole {
 				rolePlayer.updateStatus(OfficerRole.status_available_office);
 				myStatus = status_available_resumePatrol;
 				rolePlayer.setActivity(activity_noActivity);
-				return 15; // deal with the stuff
+				return (15 / EmergentCrime.temporalResolution_minutesPerTick); // deal with reporting etc.
 			}
 				
 			else{
-				rolePlayer.navigate(EmergentCrime.resolution);
+				rolePlayer.navigate(EmergentCrime.spatialResolution);
 				return 1;
 			}
 		}
 
 		if (rolePlayer.getGoal() != null && !rolePlayer.arrivedAtGoal())
-			rolePlayer.navigate(EmergentCrime.resolution);
+			rolePlayer.navigate(EmergentCrime.spatialResolution);
 
 		return 1;
 

@@ -8,5 +8,6 @@
 	<classpathentry kind="lib" path="/Library/Java/Extensions/jfreechart-1.0.9.jar"/>
 	<classpathentry kind="lib" path="libs/geotools-11.0/gt-main-11.0.jar"/>
 	<classpathentry kind="lib" path="libs/geotools-11.0/gt-swing-11.0.jar"/>
+	<classpathentry kind="lib" path="libs/geotools-11.0/gt-shapefile-11.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

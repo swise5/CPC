@@ -38,7 +38,7 @@ public class ReportCarRole extends OfficerRole {
 		int myActivity = rolePlayer.getActivity();
 
 		if(myActivity == activity_onWayToStation){
-			rolePlayer.navigate(EmergentCrime.resolution);
+			rolePlayer.navigate(EmergentCrime.spatialResolution);
 			return 1;
 		}
 
@@ -51,10 +51,10 @@ public class ReportCarRole extends OfficerRole {
 				myStatus = status_committedButDeployable;
 				rolePlayer.setActivity(activity_dealingWithTasking);
 				
-				return (random.nextInt(4) + 1) * 15;
+				return world.param_reportTimeCommitment;//(random.nextInt(4) + 1) * 15;
 			}
 			else
-				rolePlayer.navigate(EmergentCrime.resolution);
+				rolePlayer.navigate(EmergentCrime.spatialResolution);
 			
 			return 1;
 		}
@@ -93,7 +93,7 @@ public class ReportCarRole extends OfficerRole {
 		}
 		
 		if (rolePlayer.getGoal() != null && !rolePlayer.arrivedAtGoal())
-			rolePlayer.navigate(EmergentCrime.resolution);
+			rolePlayer.navigate(EmergentCrime.spatialResolution);
 		else {
 			GeoNode gn = (GeoNode) roadNodes.get(random.nextInt(roadNodes.size()));
 			rolePlayer.setCurrentGoal(gn.geometry.getCoordinate());

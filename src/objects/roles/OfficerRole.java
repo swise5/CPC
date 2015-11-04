@@ -13,11 +13,15 @@ public class OfficerRole {
 	int shiftEndTime = -1;
 	Coordinate station = null;
 	
+	int nextTaskingCost = -1;
+	int myIncident = -1;
+
+	
 	double vehicle = -1;
-	public static double speed_vehicle = 2000;
+/*	public static double speed_vehicle = 2000;
 	public static double speed_vehicle_noLights = 3000;
 	public static double speed_foot = 800;
-
+*/
 	// STATUSES ////////////
 	
 	public static int status_onDuty = 1;
@@ -79,7 +83,7 @@ public class OfficerRole {
 */
 		
 		// if activated while off-duty, it's time for work
-		if (myStatus == status_offDuty && rolePlayer.geometry.getCoordinate().distance(station) < EmergentCrime.resolution) {
+		if (myStatus == status_offDuty && rolePlayer.geometry.getCoordinate().distance(station) < EmergentCrime.spatialResolution) {
 			// disabled while doing vehicles only
 			// myStatus = status_occupied;
 			// rolePlayer.setActivity(activity_briefing);
@@ -88,7 +92,7 @@ public class OfficerRole {
 			myStatus = status_available_resumePatrol;
 			rolePlayer.setActivity(activity_noActivity);
 			// rolePlayer.setActivity(activity_patrolling);
-			shiftEndTime = (int) (time + 60 * 8);
+			shiftEndTime = (int) (time + (60 * 8 / EmergentCrime.temporalResolution_minutesPerTick));
 			return time + 1;
 			// TODO: proper briefing time
 			// return time + 30;
@@ -98,7 +102,7 @@ public class OfficerRole {
 		if(myActivity == activity_carCheck){
 			myStatus = status_available_resumePatrol;
 			rolePlayer.setActivity(activity_noActivity);
-			shiftEndTime = (int)(time + 60 * 8);
+			shiftEndTime = (int)(time + (60 * 8 / EmergentCrime.temporalResolution_minutesPerTick));
 			if(verbose)
 				System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "car check");
 			return time + executePersonalTasking();
@@ -111,18 +115,18 @@ public class OfficerRole {
 			
 			// if already at the station, go back! 
 			if((myActivity == activity_onWayToStation || myActivity == activity_noActivity) // either on way or already there
-					&& rolePlayer.geometry.getCoordinate().distance(station) < EmergentCrime.resolution){ // already there
+					&& rolePlayer.geometry.getCoordinate().distance(station) < EmergentCrime.spatialResolution){ // already there
 
 				if(verbose)
 					System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "-- change shift");
 
 				myStatus = status_committedAndUnavailable;
 				rolePlayer.setActivity(activity_carCheck);
-				return time + 15;
+				return time + 15 / EmergentCrime.temporalResolution_minutesPerTick;
 			}
 			// if on the way to the stations and not there yet, keep moving
 			else if(myActivity == activity_onWayToStation && !rolePlayer.arrivedAtGoal()){
-				rolePlayer.navigate(EmergentCrime.resolution);
+				rolePlayer.navigate(EmergentCrime.spatialResolution);
 				return time + 1;
 			}
 			// otherwise return to the station
@@ -140,9 +144,9 @@ public class OfficerRole {
 		}
 
 		// time to go back after shift is over
-		else if(time + 60 > shiftEndTime 
+		else if(time + (60 / EmergentCrime.temporalResolution_minutesPerTick) > shiftEndTime 
 				&& myActivity != activity_onWayToStation && myActivity != activity_onWayToTasking 
-				&& rolePlayer.getBase().distance(rolePlayer.geometry.getCoordinate()) > EmergentCrime.resolution){
+				&& rolePlayer.getBase().distance(rolePlayer.geometry.getCoordinate()) > EmergentCrime.spatialResolution){
 			// if it's time to go back to the station: set activity, set destination, and 
 			// schedule self to go back
 			myStatus = status_committedButDeployable;
@@ -164,7 +168,22 @@ public class OfficerRole {
 //		return 0;
 	}
 	
-	
+	public void redirectToResponse(Coordinate location, int time, int incident) {
+
+		myIncident = incident;
+		myStatus = OfficerRole.status_enRouteToIncident;
+		
+		rolePlayer.setActivity(activity_onWayToTasking);
+		rolePlayer.setSpeed(Officer.topSpeed);
+		rolePlayer.setCurrentGoal(location);
+		rolePlayer.setMovementRule(Agent.movementRule_roadsOnlyNoLaws);
+		rolePlayer.updateStatus(OfficerRole.status_enRouteToIncident);
+		nextTaskingCost = time;
+
+		if(verbose)
+			System.out.println(rolePlayer.getTime() + "\t" + rolePlayer.toString() + " respond to " + location.toString());
+	}
+
 	public double executePersonalTasking(){
 		System.out.println("job job job");
 		return 1;

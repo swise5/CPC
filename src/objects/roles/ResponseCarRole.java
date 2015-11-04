@@ -17,10 +17,10 @@ public class ResponseCarRole extends OfficerRole {
 
 	Bag roadNodes = null;
 	MersenneTwisterFast random;
-	int nextTaskingCost = -1;
+//	int nextTaskingCost = -1;
+//	int myIncident = -1;
 	Despatch despatch = null;
 	long ticket = -1;
-	int myIncident = -1;
 
 	public ResponseCarRole(Officer o, Bag roadNodes, MersenneTwisterFast random, Despatch despatch) {
 		super(o);
@@ -43,7 +43,7 @@ public class ResponseCarRole extends OfficerRole {
 		}
 
 		if(myActivity == activity_onWayToStation){
-			rolePlayer.navigate(EmergentCrime.resolution);
+			rolePlayer.navigate(EmergentCrime.spatialResolution);
 			return 1;
 		}
 
@@ -52,7 +52,7 @@ public class ResponseCarRole extends OfficerRole {
 		if(myActivity == activity_dealingWithTasking && ticket == -1){
 			
 			// transport request?
-			if(random.nextDouble() < rolePlayer.getWorld().param_transportRequestProb){
+			if(random.nextDouble() < rolePlayer.getWorld().param_transportRequestProb && rolePlayer.getWorld().rolesDisabled){
 				ticket = despatch.receiveRequestForTransport(rolePlayer.geometry.getCoordinate());
 				if(verbose)
 					System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "request transport");
@@ -84,7 +84,7 @@ public class ResponseCarRole extends OfficerRole {
 				return nextTaskingCost;
 			}
 			else
-				rolePlayer.navigate(EmergentCrime.resolution);
+				rolePlayer.navigate(EmergentCrime.spatialResolution);
 			
 			return 1;
 		}
@@ -103,7 +103,7 @@ public class ResponseCarRole extends OfficerRole {
 		}
 
 		if (rolePlayer.getGoal() != null && !rolePlayer.arrivedAtGoal())
-			rolePlayer.navigate(EmergentCrime.resolution);
+			rolePlayer.navigate(EmergentCrime.spatialResolution);
 		else {
 			GeoNode gn = (GeoNode) roadNodes.get(random.nextInt(roadNodes.size()));
 			rolePlayer.setCurrentGoal(gn.geometry.getCoordinate());
@@ -115,7 +115,7 @@ public class ResponseCarRole extends OfficerRole {
 		return 1;
 	}
 
-	public void redirectToResponse(Coordinate location, int time, int incident) {
+/*	public void redirectToResponse(Coordinate location, int time, int incident) {
 
 		myIncident = incident;
 		myStatus = OfficerRole.status_enRouteToIncident;
@@ -130,7 +130,7 @@ public class ResponseCarRole extends OfficerRole {
 		if(verbose)
 			System.out.println(rolePlayer.getTime() + "\t" + rolePlayer.toString() + " respond to " + location.toString());
 	}
-	
+*/	
 	public boolean interfaceWithTransportVan(long ticket){
 		if(this.ticket == ticket){
 			/*

@@ -19,11 +19,11 @@ public class StationaryTasking extends OfficerRole {
 		public double executePersonalTasking(){
 			
 			// if not already at tasking, navigate there
-			if(rolePlayer.geometry.getCoordinate().distance(taskLocation) > EmergentCrime.resolution){
+			if(rolePlayer.geometry.getCoordinate().distance(taskLocation) > EmergentCrime.spatialResolution){
 				if(rolePlayer.arrivedAtGoal())
 					rolePlayer.headFor(taskLocation);
 				else
-					rolePlayer.navigate(EmergentCrime.resolution);
+					rolePlayer.navigate(EmergentCrime.spatialResolution);
 			}
 			// TODO: this is meaningless
 			return 0;

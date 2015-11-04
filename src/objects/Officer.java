@@ -8,17 +8,13 @@ import objects.roles.ResponseCarRole;
 import objects.roles.TransportVanRole;
 import sim.EmergentCrime;
 import sim.engine.SimState;
+import sim.util.geo.MasonGeometry;
 import swise.objects.network.GeoNode;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
 public class Officer extends Agent {
 
-	Officer commander;
-	ArrayList <Officer> subordinates;
-	
-	int crimeDetectionRadius = 100;
-	
 	int myStatus = 0;
 	OfficerRole role = null;
 
@@ -35,10 +31,9 @@ public class Officer extends Agent {
 	String lastEdgeTravelled = "";
 	public String positionRecord = "";
 	
-	public static double defaultSpeed = 200;//270;//535;
-	public static double topSpeed = 1000;//2000;
+	public static double defaultSpeed = 200 * EmergentCrime.temporalResolution_minutesPerTick;//270;//535;
+	public static double topSpeed = 1000 * EmergentCrime.temporalResolution_minutesPerTick;//2000;
 	
-	int myShift = 0;
 	int laggedStatus = OfficerRole.status_offDuty;
 
 	public Officer(String id, Coordinate homeStation, Coordinate mainStation, EmergentCrime world, double speed, String taskingType) {
@@ -52,7 +47,7 @@ public class Officer extends Agent {
 		this.base = homeStation;//((GeoNode) world.roadNodes.get(world.random.nextInt(world.roadNodes.size()))).geometry.getCoordinate();
 		this.work = mainStation;//(Coordinate)work.clone();
 
-		world.schedule.scheduleOnce(60 * 12 * myShift, //this.getTime(4 + 8 * myShift, 0), 
+		world.schedule.scheduleOnce(world.schedule.getTime() + 1, //this.getTime(4 + 8 * myShift, 0), 
 				EmergentCrime.ordering_officers, this);
 		
 		path = null;
@@ -86,7 +81,7 @@ public class Officer extends Agent {
 	
 	public int navigate(double resolution){
 		
-		if(world.schedule.getTime() - 10 > lastTimeTraveled){
+		if(world.schedule.getTime() - (10 / world.temporalResolution_minutesPerTick) > lastTimeTraveled){
 			if(positionRecord.length() > 0)
 				positionRecord += "\t</coordinates>\n</LineString>\n</Placemark>\n";
 			positionRecord += "<Placemark><name>" + myID + 
@@ -147,16 +142,24 @@ public class Officer extends Agent {
 	
 	public void step(SimState state){
 		
+		world.statusChanges.add(((int)state.schedule.getTime()) + "\t" + myStatus  + "\t" + this.myID  + "\t" + 
+				this.role.getClass() + "\t" + this.geometry.getCoordinate().toString() + "\t" + ((MasonGeometry)this.edge.getInfo()).getStringAttribute("FID_1") + "\n");
+
 		double nextActivation = role.activate(state.schedule.getTime());//chooseActivityForTick();
+		if(nextActivation <= state.schedule.getTime()){
+			nextActivation = state.schedule.getTime() + 1;
+			System.out.println(this.getActivity() + "\t" + this.arrivedAtGoal());
+		}
 		int currentStatus = ((OfficerRole)role).getStatus();
 		if(myStatus != currentStatus)
 			updateStatus(currentStatus);
 		state.schedule.scheduleOnce(nextActivation, this);
 
-		if(laggedStatus != myStatus){
-			world.statusChanges.add(((int)state.schedule.getTime()) + "\t" + myStatus  + "\t" + this.myID  + "\t" + this.geometry.getCoordinate().toString() + "\n");
+/*		if(laggedStatus != myStatus){
+			world.statusChanges.add(((int)state.schedule.getTime()) + "\t" + myStatus  + "\t" + this.myID  + "\t" + 
+					this.role.getClass() + "\t" + this.geometry.getCoordinate().toString() + "\t" + ((MasonGeometry)this.edge.getInfo()).getStringAttribute("FID_1") + "\n");
 		}
-		laggedStatus = myStatus;
+	*/	laggedStatus = myStatus;
 		
 //		timeOnDuty++;
 		/*

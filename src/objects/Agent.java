@@ -143,7 +143,7 @@ public class Agent extends TrafficAgent implements Serializable {
 		endIndex = segment.getEndIndex();
 		currentIndex = segment.indexOf(position);
 
-		observer = world.schedule.scheduleRepeating(new Steppable (){
+/*		observer = world.schedule.scheduleRepeating(new Steppable (){
 			private static final long serialVersionUID = 1L;
 
 			@Override
@@ -151,7 +151,7 @@ public class Agent extends TrafficAgent implements Serializable {
 				if(currentActivity == activity_sleep) return;
 			}
 		}, 50, 12);
-		
+	*/	
 		currentActivity = activity_sleep;
 		
 		space.addGeometry(this);
@@ -326,7 +326,7 @@ public class Agent extends TrafficAgent implements Serializable {
 	
 	void pickDefaultActivity(){
 		int time = (int) world.schedule.getTime();
-		world.schedule.scheduleOnce(time + 12, 100, this); // check again in an hour
+		world.schedule.scheduleOnce(time + (60 / world.temporalResolution_minutesPerTick), 100, this); // check again in an hour
 	}
 	
 	/**
@@ -374,7 +374,7 @@ public class Agent extends TrafficAgent implements Serializable {
 			if(path == null){
 				headFor(targetDestination);
 			}
-			this.navigate(world.resolution);
+			this.navigate(world.spatialResolution);
 		}
 
 		updateStatus();
@@ -420,7 +420,7 @@ public class Agent extends TrafficAgent implements Serializable {
 		// set up goal information
 		targetDestination = world.snapPointToRoadNetwork(place);
 		
-		GeoNode destinationNode = world.getClosestGeoNode(targetDestination, EmergentCrime.resolution);//place);
+		GeoNode destinationNode = world.getClosestGeoNode(targetDestination, EmergentCrime.spatialResolution);//place);
 		if(destinationNode == null){
 			System.out.println((int)world.schedule.getTime() + "\t" + this.myID + "\tMOVE_ERROR_invalid_destination_node");
 			return -2;
@@ -428,7 +428,7 @@ public class Agent extends TrafficAgent implements Serializable {
 
 		// be sure that if the target location is not a node but rather a point along an edge, that
 		// point is recorded
-		if(destinationNode.geometry.getCoordinate().distance(targetDestination) > EmergentCrime.resolution)
+		if(destinationNode.geometry.getCoordinate().distance(targetDestination) > EmergentCrime.spatialResolution)
 			goalPoint = targetDestination;
 		else
 			goalPoint = null;
@@ -462,7 +462,7 @@ public class Agent extends TrafficAgent implements Serializable {
 		}
 
 		// reset stuff
-		if(path.size() == 0 && targetDestination.distance(geometry.getCoordinate()) > world.resolution){
+		if(path.size() == 0 && targetDestination.distance(geometry.getCoordinate()) > world.spatialResolution){
 			path.add(edge);
 			node = (GeoNode) edge.getOtherNode(node); // because it will look for the other side in the navigation!!! Tricky!!
 		}
@@ -488,7 +488,7 @@ public class Agent extends TrafficAgent implements Serializable {
 				lastEdge = edge;
 
 			Point goalPointGeometry = world.fa.createPoint(goalPoint);
-			if(!lastEdge.equals(myLastEdge) && ((MasonGeometry)lastEdge.info).geometry.distance(goalPointGeometry) > EmergentCrime.resolution){
+			if(!lastEdge.equals(myLastEdge) && ((MasonGeometry)lastEdge.info).geometry.distance(goalPointGeometry) > EmergentCrime.spatialResolution){
 				if(lastEdge.getFrom().equals(myLastEdge.getFrom()) || lastEdge.getFrom().equals(myLastEdge.getTo()) 
 						|| lastEdge.getTo().equals(myLastEdge.getFrom()) || lastEdge.getTo().equals(myLastEdge.getTo()))
 					path.add(0, myLastEdge);
@@ -559,8 +559,8 @@ public class Agent extends TrafficAgent implements Serializable {
 	
 	public void setupPaths(){
 		if(work != null){
-			GeoNode workNode = world.getClosestGeoNode(this.work, EmergentCrime.resolution);
-			GeoNode homeNode = world.getClosestGeoNode(this.base, EmergentCrime.resolution);
+			GeoNode workNode = world.getClosestGeoNode(this.work, EmergentCrime.spatialResolution);
+			GeoNode homeNode = world.getClosestGeoNode(this.base, EmergentCrime.spatialResolution);
 
 			ArrayList <Edge> pathFromHomeToWork = pathfinder.astarPath(homeNode, workNode, world.roads);
 			this.familiarPaths.add(pathFromHomeToWork);
@@ -575,7 +575,7 @@ public class Agent extends TrafficAgent implements Serializable {
 
 	public boolean arrivedAtGoal(){
 		if(currentGoal == null) return true;
-		else if(geometry.getCoordinate().distance(currentGoal) > EmergentCrime.resolution) return false;
+		else if(geometry.getCoordinate().distance(currentGoal) > EmergentCrime.spatialResolution) return false;
 		else return true;
 	}
 	
