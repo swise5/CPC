@@ -4,15 +4,17 @@ import gui.SimulationParameters;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-
+import java.util.ArrayList;
+import java.util.HashMap;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -25,28 +27,23 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import sim.EmergentCrime;
-import sim.display.Display2D;
-import sim.field.geo.GeomVectorField;
-import sim.portrayal.geo.GeomPortrayal;
-import sim.portrayal.geo.GeomVectorFieldPortrayal;
-import sim.util.Bag;
-import swise.objects.InOutUtilities;
-import swise.visualization.holders.StaticDisplay2D;
 
 public class SimPanel extends JPanel {
 
 	EmergentCrimeWithGUI parent = null;
 	String myName = "Scenario 1";
+	int myNumber = -1;
 	
 	// PANELS
 	
 	JPanel sliderPanel = new JPanel();
+	Box box;
 	
 	// BUTTONS
 	
 	JButton chooseCADButton = new JButton("Select CAD file");
 	JButton chooseDirButton = new JButton("Select data directory");
-	JButton runSimulationButton = new JButton("RUN THE SIMULATION");
+	JButton runSimulationButton = new JButton("RUN SIM");
 
 	// SLIDERS
 	
@@ -68,38 +65,58 @@ public class SimPanel extends JPanel {
 
 	// UTILITIES
 
-	final JFileChooser fileChooser = new JFileChooser(),
-			dirChooser = new JFileChooser(); // TODO: set up so it starts from this directory
+	final JFileChooser fileChooser = new JFileChooser("."),
+			dirChooser = new JFileChooser("."); // TODO: set up so it starts from this directory
 
 	
 	
 	public SimPanel(EmergentCrimeWithGUI myParent) {
-		this(myParent, "Scenario X");
+		this(myParent, "Scenario X", 1);
 	}
 
-	public SimPanel(EmergentCrimeWithGUI myParent, String name) {
+	public SimPanel(EmergentCrimeWithGUI myParent, String name, int number) {
 
 		super();
 
 		parent = myParent;
 		myName = name;
+		myNumber = number;
+		
+		box = Box.createVerticalBox();
+		box.setSize(350, 800);
+		box.setAlignmentX(LEFT_ALIGNMENT);
 		
 		setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		setPreferredSize(new Dimension(350, 800));
-		setBackground(Color.cyan);
+		setBackground(Color.white);
+//		setAlignmentX(1);
 
-		add(new JLabel(myName));
+		JLabel nameLabel = new JLabel(myName);
+		nameLabel.setFont(new Font(nameLabel.getFont().getName(), Font.PLAIN, 24));
+		nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+//		add(nameLabel);
+		box.add(nameLabel);
 		
-		add(new JLabel("Select Parameters for the Simulation"));
-
+		
+		JLabel paramsLabel = new JLabel("Select Parameters for the Simulation");
+		//paramsLabel.setBounds(5, 100, 800, 100);
+		paramsLabel.setMinimumSize(new Dimension(450, 50));
+		paramsLabel.setAlignmentX(1);
+//		add(paramsLabel);
+		box.add(paramsLabel);
+		
 		setupDataInputs();
 		setupSliders();
 
 		attachSimulation();
-		add(new JLabel("Log"));
+//		add(new JLabel("Log", JLabel.LEFT));
+		JLabel logLabel = new JLabel("Log", JLabel.LEFT);
+		logLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT);
+		box.add(logLabel);
 		//add(log);
 		addLog();
+		add(box, BorderLayout.NORTH);
 		// VISUALISE THE RESULTS
 	}
 	
@@ -117,15 +134,23 @@ public class SimPanel extends JPanel {
 	    scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 	          scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 
-	    add(scroll);
+//	    add(scroll);
+	  	    box.add(scroll);
 	}
 
+	ArrayList <HashMap <String, Integer>> results = new ArrayList <HashMap <String, Integer>> ();
+	ArrayList <int []> statusResults = new ArrayList <int []> ();
+	ArrayList <double []> responseTimeResults = new ArrayList <double []>(); 
+	
+	
 	public void attachSimulation() {
 		//
 		// RUNNING THE SIMULATION!!!!
 		//
 
 		runSimulationButton.setToolTipText("Run the simulation with the specified parameters");
+		runSimulationButton.setMinimumSize(new Dimension(200,20));
+
 		runSimulationButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent event) {
@@ -155,15 +180,36 @@ public class SimPanel extends JPanel {
 						log.append("Writing to file...\n");
 						log.repaint();
 						ec.finish();
+						statusResults.add(ec.statusRecord);
+						responseTimeResults.add(ec.getDespatch().getAverageResponseTimes());
+						results.add(ec.getHeatmap());
+						
 					}
 					
-					log.append("Finished!\n");
-
+					log.append("Finished running simulations!\n");
+					log.append("\nTotal time spent on Status...\n");
+					int [] statusResult = statusResults.get(0);
+					for(int i: new int[]{2, 3, 5, 6, 8, 9}){
+						log.append(" > " + i + ": " + statusResult[i] + " minutes\n");
+					}
+					
+					log.append("\nAverage response times for...\n");
+					String [] responseNames = new String [] {" Immediate", " Severe", " Extended"};
+					for(int i = 0; i <= 2; i++){
+						String formatMe = String.format("%.1f", responseTimeResults.get(0)[i]);
+						log.append(" > " + formatMe + " minutes - " + responseNames[i] + "\n");
+					}
+					
+					log.append("\nHeatmap uploaded to visualisation...\n");
+					log.repaint();
+					
+					parent.uploadHeatmap(results.get(0), myNumber - 1);
 				}
 			}
 		});
 		
-		add(runSimulationButton);
+		//add(runSimulationButton);
+		box.add(runSimulationButton);
 	}
 
 	// IDENTIFY THE DATA INPUTS TO THIS MODEL
@@ -203,8 +249,10 @@ public class SimPanel extends JPanel {
 			}
 		});
 		
-		add(chooseCADButton);
-		add(chooseDirButton);
+//		add(chooseCADButton);
+//		add(chooseDirButton);
+		box.add(chooseCADButton);
+		box.add(chooseDirButton);
 
 	}
 
@@ -328,7 +376,8 @@ public class SimPanel extends JPanel {
 		
 		// -------- PANEL ADDING -----------
 		
-		add(sliderPanel);
+//		add(sliderPanel);
+		box.add(sliderPanel);
 
 	}
 

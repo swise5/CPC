@@ -3,6 +3,7 @@ package objects.roles;
 import java.util.ArrayList;
 
 import objects.Agent;
+import objects.Despatch;
 import objects.Officer;
 import sim.EmergentCrime;
 import sim.EmergentCrime.CallEvent;
@@ -18,19 +19,19 @@ public class ReportCarRole extends OfficerRole {
 	EmergentCrime world;
 	Bag roadNodes = null;
 	MersenneTwisterFast random;
-	
+	Despatch despatch;
 
 
-	public ReportCarRole(Officer o, Bag roadNodes,
-			MersenneTwisterFast random, EmergentCrime world) {
+	public ReportCarRole(Officer o, Bag roadNodes, EmergentCrime world) {
 		super(o);
 		try {
-			this.roadNodes = (Bag) roadNodes.clone();
+			this.roadNodes = (Bag) world.roadNodes.clone();
 		} catch (CloneNotSupportedException e) {
 			e.printStackTrace();
 		}
-		this.random = random;
+		random = world.random;
 		this.world = world;
+		despatch = world.despatch;
 	}
 
 	public double executePersonalTasking() {
@@ -48,6 +49,9 @@ public class ReportCarRole extends OfficerRole {
 			// if arrived at scene of incident, deal with it
 			if(rolePlayer.arrivedAtGoal()){
 				
+				if(myStatus == status_enRouteToIncident)
+					despatch.recordResponseTime(myIncident);
+
 				myStatus = status_committedButDeployable;
 				rolePlayer.setActivity(activity_dealingWithTasking);
 				
@@ -63,13 +67,14 @@ public class ReportCarRole extends OfficerRole {
 		if(myActivity == activity_dealingWithTasking){
 			// return to station?
 			if(random.nextDouble() < rolePlayer.getWorld().param_reportProb){
+				myActivity = activity_onWayToTasking;
 				rolePlayer.setActivity(activity_onWayToTasking);
 				rolePlayer.setCurrentGoal(rolePlayer.getWork());
 				return 1;
 			}
 		}
 		
-		if (world.hasExtendedEvent()) {
+/*		if (world.hasExtendedEvent()) {
 
 			CallEvent callEvent = world.getNextExtendedEvent();
 
@@ -85,10 +90,11 @@ public class ReportCarRole extends OfficerRole {
 				return 1;
 			}
 		}
-
+*/
 		// otherwise transition into patrolling
 		if(myActivity != activity_patrolling){
 			myActivity = activity_patrolling;
+			rolePlayer.setActivity(activity_patrolling);
 			myStatus = status_available_resumePatrol;
 		}
 		

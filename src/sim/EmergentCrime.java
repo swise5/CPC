@@ -66,7 +66,7 @@ public class EmergentCrime extends SimState {
 	public double param_redeployProb = .75;
 	
 	public int param_reportTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
-	public int param_responseCarTimeCommitment = (int)(20 / temporalResolution_minutesPerTick);
+	public int param_responseCarTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
 
 
 	public String cadFile = "/Users/swise/workspace/CPC/data/CAD/cadMarch2011.txt";
@@ -133,6 +133,10 @@ public class EmergentCrime extends SimState {
 	public HashMap <Edge, Integer> edgeHeatmap = new HashMap <Edge, Integer> ();
 	
 	public ArrayList <String> statusChanges = new ArrayList <String> ();
+	StatusReporter myStatusRecorder;
+	public int statusReporterInterval = 480;
+	public int [] statusRecord = new int [13];
+	public int [] testStatusRecord = new int [13];
 	
 	///////////////////////////////////////////////////////////////////////////
 	/////////////////////////// BEGIN functions ///////////////////////////////
@@ -161,9 +165,6 @@ public class EmergentCrime extends SimState {
 			InOutUtilities.readInVectorLayer(baseLayer, 
 					dataDirName + "CamdenBorough/CamdenBorough.shp", "census tracts", new Bag());
 			InOutUtilities.readInVectorLayer(roadLayer, 
-//					dirName + "itnFromToby/camden_itn_buff100.shp", "road network", new Bag());
-//					dirName + "ITN_Camden/ITN_Camden.shp", "road network", new Bag());
-//					dirName + "londonRoads/camdenRoadsOnly.shp", "road network", new Bag());
 					dataDirName + "itn/camden_itn_buff100pl2.shp", "road network", new Bag());
 			readInStationLayer(dataDirName + "PoliceStationsMoved.csv", "police stations", fa);
 			GeomVectorField trafficLights = new GeomVectorField(grid_width, grid_height);
@@ -299,8 +300,7 @@ public class EmergentCrime extends SimState {
 			
 			// set up the administration
 			firstContact = new FirstContact(this);
-			firstContact.setUrgentCAD(urgent_CAD);
-			firstContact.setExtendedCAD(extended_CAD);
+			firstContact.setUrgentCAD(urgent_CAD); 
 	
 			despatch = new Despatch(urgent_CAD, officers, this);
 			schedule.scheduleRepeating(despatch, EmergentCrime.ordering_despatch, 1);
@@ -340,11 +340,50 @@ public class EmergentCrime extends SimState {
             }
             }, 1);
 			 */
+			
+			myStatusRecorder = new StatusReporter();
+	        schedule.scheduleRepeating(0,1, myStatusRecorder, statusReporterInterval);
+	        
+	        schedule.scheduleRepeating(0, new Steppable(){
+
+				@Override
+				public void step(SimState state) {
+					for(Officer o: officers){
+						int myStatus = o.getStatus();
+						testStatusRecord[myStatus]++;
+					}
+					
+				}
+	        	
+	        }, 1);
 		} catch (Exception e) { e.printStackTrace();}
 		
 		
     }
 
+	class StatusReporter implements Steppable {
+		
+		@Override
+		public void step(SimState state) {
+        	int [] sumOfStatuses = new int [13];
+        	for(Officer o: officers){
+        		o.updateStatusTimes();
+        		int [] os = o.getStatusTimes();
+        		for(int i = 0; i < 13; i++){
+        			sumOfStatuses[i] += os[i];
+        		}
+        		o.resetStatusTimes();
+        	}
+    
+        	statusRecord = sumOfStatuses;
+/*        	String result = "";
+        	for(int i = 0; i < 13; i++){
+        		result += sumOfStatuses[i] + "\t";
+        	}
+        	statusRecord += result;
+  */      }
+	}
+	
 	/**
 	 * Officers assigned in approximately correct numbers and taskings per station
 	 * 
@@ -550,7 +589,29 @@ public class EmergentCrime extends SimState {
 		}
 	}
 	
+
+	public HashMap <String, Integer> getHeatmap(){
+		HashMap <String, Integer> result = new HashMap <String, Integer> ();
+		
+		for(Entry<Edge, Integer> entry: edgeHeatmap.entrySet()){
+			Edge e = entry.getKey();
+			result.put(((MasonGeometry)e.getInfo()).getStringAttribute("FID_1"), edgeHeatmap.get(e));
+		}
+		
+		return result;
+	}
+	
 	public void finish(){
+		
+		super.finish();
+		try{
+//			myStatusRecorder.step(this);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	public void finishWithOutput(){
 		super.finish();
 		try{
 /*
@@ -574,11 +635,13 @@ public class EmergentCrime extends SimState {
 			
 			BufferedWriter myKmls = new BufferedWriter(new FileWriter(fileName + "_edges.txt"));
 
-			double count = 0;
-			for(int i: edgeHeatmap.values())
-				count += (double) i;
-			
-			if(!normaliseOutput)
+			double count;
+			if(normaliseOutput){
+				count = 0;
+				for(int i: edgeHeatmap.values())
+					count += (double) i;
+			}
+			else
 				count = 1;
 			
 			for(Entry<Edge, Integer> entry: edgeHeatmap.entrySet()){
@@ -782,53 +845,14 @@ public class EmergentCrime extends SimState {
 		random = new MersenneTwisterFast(number);
 		mySeed = number;
 	}
-	
-/*	public class CrimeEvent extends MasonGeometry {
-		String type;
-		HashSet <Object> targets;
-		HashSet <Agent> offenders;
 		
-		public CrimeEvent(String type, HashSet <Object> targets, HashSet <Agent> offenders){
-			this.type = type;
-			this.targets = targets;
-			this.offenders = offenders;
-			
-			this.geometry = fa.createPoint(offenders.iterator().next().geometry.getCoordinate());
-		}
-		
-		public CrimeEvent(String type, Object target, Agent offender){
-			HashSet <Object> targets = new HashSet <Object> (); 
-			targets.add(target);
-			HashSet <Agent> offenders = new HashSet <Agent> (); 
-			offenders.add(offender);
-
-			this.type = type;
-			this.targets = targets;
-			this.offenders = offenders;
-			
-			this.geometry = fa.createPoint(offender.geometry.getCoordinate());
-		}
-		
-		public HashSet <Agent> getOffenders(){ return offenders; }
-		public HashSet <Object> getTargets(){ return targets; }
-	}*/
-	
 	public class CallEvent implements Comparable {
 
 		int grading = 0; // Grading: 0 = I, 1 = S, 2 = E, 3 = R
 		Geometry location = null;
 		int incidentNumber;
-		//long time = -1;
 		double time = -1;
 		int key = -1;
-		
-		public CallEvent(){
-			this(0, null, -1, -1, -1);
-		}
-		
-		public CallEvent(int grade){
-			this(grade, null, -1, -1, -1);
-		}
 		
 		public CallEvent(int grade, Geometry location, double time, int incidentNumber, int key){
 			this.time = time;//System.currentTimeMillis();
@@ -842,9 +866,10 @@ public class EmergentCrime extends SimState {
 		public int compareTo(Object arg0) {
 			if(arg0 instanceof CallEvent){
 				CallEvent ce = (CallEvent) arg0;
-				if(ce.grading > grading || ce.time > time) return -1;
+				if(ce.grading > grading) return -1;
+				else if(ce.time > time) return -1;
 				else if(ce.time < time) return 1;
-				else if(ce.key < key) return 1;
+				else if(ce.key < key) return -1;
 				else return 0;
 			}
 			return 0;
@@ -856,8 +881,6 @@ public class EmergentCrime extends SimState {
 		public double getTime(){ return time; }
 	}
 
-	public void recordTravelTime(int i){ travelTimes.add(i); }
-	
 	public void readInStationLayer(String filename, String layerDescription, GeometryFactory fa){
 		try {
 			System.out.print("Reading in " + layerDescription + "...");
@@ -887,31 +910,11 @@ public class EmergentCrime extends SimState {
 
 //	ArrayList <CallEvent> callData = new ArrayList <CallEvent> ();
 //	TreeSet <CallEventWrapper> callTimes = new TreeSet <CallEventWrapper> ();
-	TreeSet <CallEvent> callTimes = new TreeSet <CallEvent> ();
+//	TreeSet <CallEvent> callTimes = new TreeSet <CallEvent> ();
+	ArrayList <CallEvent> callTimes = new ArrayList <CallEvent> ();
 	
-/*	class CallEventWrapper implements Comparable {
-		CallEvent call;
-		double time;
-		int incidentNumber;
-		
-		public CallEventWrapper(CallEvent call, double time, int incidentNumber){
-			this.call = call;
-			this.time = time;
-			this.incidentNumber = incidentNumber;
-		}
-		
-		public int compareTo(Object arg0){
-			if(!(arg0 instanceof CallEventWrapper)) return -1;
-			
-			CallEventWrapper cew = (CallEventWrapper) arg0;
-			if(cew.incidentNumber == incidentNumber) return 0;
-			if(cew.time < time) return 1;
-			else if(cew.time > time) return -1;
-			else return 0;
-		}
-	}*/
-	
-	// ASSUMES ONLY ONE MONTH OF DATA!!!!
+
+	// TODO ASSUMES ONLY ONE MONTH OF DATA!!!!
 	public void readInCADData(String filename, String layerDescription){
 		try {
 			System.out.print("Reading in " + layerDescription + "...");
@@ -950,9 +953,12 @@ public class EmergentCrime extends SimState {
 				
 				final int code;
 
-				if(level.equals("I ")) code = 0;
-				else if(level.equals("S ")) code = 1;
-				else if(level.equals("E ")) code = 2;
+				if(level.equals("I ")) 
+					code = 0;
+				else if(level.equals("S ")) 
+					code = 1;
+				else if(level.equals("E ")) 
+					code = 2;
 				else
 					continue;
 /*				else if(level.equals("S ")) code = 1;
@@ -981,7 +987,7 @@ public class EmergentCrime extends SimState {
 				public void step(SimState state) {
 
 					// handle the call
-					CallEvent call = callTimes.pollFirst();
+					CallEvent call = callTimes.remove(0);
 					firstContact.receiveCall(null, call);
 					crimeLayer.addGeometry(new MasonGeometry(call.getLocation()));
 
@@ -990,15 +996,15 @@ public class EmergentCrime extends SimState {
 					
 					// other calls may have happened at the same time: make sure all these calls are handled as well!
 					double currentTime = state.schedule.getTime();
-					while(callTimes.first().getTime() <= currentTime){
-						call = callTimes.pollFirst();
+					while(callTimes.get(0).getTime() <= currentTime){
+						call = callTimes.remove(0);
 						firstContact.receiveCall(null, call);
 						crimeLayer.addGeometry(new MasonGeometry(call.getLocation()));
 					}
 
 					// if there are still calls to be scheduled, schedule this event inserter to run again when the next item is called
 					if(!callTimes.isEmpty())
-						state.schedule.scheduleOnce(callTimes.first().time, EmergentCrime.ordering_firstContact, this);
+						state.schedule.scheduleOnce(callTimes.get(0).time, EmergentCrime.ordering_firstContact, this);
 				}
 				
 			});
@@ -1099,4 +1105,6 @@ public class EmergentCrime extends SimState {
 		
 		ec.finish();
     }
+
+	public Despatch getDespatch(){ return despatch; }
 }

@@ -1,34 +1,30 @@
 package gui;
 
 import java.awt.Color;
-import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.GroupLayout;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JSlider;
 import javax.swing.JTextField;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-
-import sim.EmergentCrime;
 import sim.field.geo.GeomVectorField;
 import sim.portrayal.geo.GeomPortrayal;
 import sim.portrayal.geo.GeomVectorFieldPortrayal;
 import sim.util.Bag;
+import sim.util.geo.MasonGeometry;
+import sim.util.gui.SimpleColorMap;
 import swise.objects.InOutUtilities;
+import swise.visualization.AttributePolyPortrayal;
 import swise.visualization.holders.StaticDisplay2D;
 
 public class EmergentCrimeWithGUI extends JFrame {
@@ -55,7 +51,7 @@ public class EmergentCrimeWithGUI extends JFrame {
 	JFrame mapViewer = new JFrame();
 	StaticDisplay2D map;
 	private GeomVectorFieldPortrayal roads = new GeomVectorFieldPortrayal(true);
-	public GeomVectorField baseLayer = new GeomVectorField(100, 100);
+	public GeomVectorField baseLayer = new GeomVectorField(300, 300);
 
 
 	
@@ -90,7 +86,7 @@ public class EmergentCrimeWithGUI extends JFrame {
 			public void actionPerformed(ActionEvent event) {
 				if(event.getSource() == addNewScenarioButton){
 					scenarios++;
-					SimPanel newPanel = new SimPanel(EmergentCrimeWithGUI.this, "Scenario " + scenarios);
+					SimPanel newPanel = new SimPanel(EmergentCrimeWithGUI.this, "Scenario " + scenarios, scenarios);
 					scenarioPanel.add(newPanel);
 					scenarioPanel.revalidate();
 					EmergentCrimeWithGUI.this.pack();
@@ -127,7 +123,7 @@ public class EmergentCrimeWithGUI extends JFrame {
 			}
 			
 		});
-  		controlPanel.add(new JLabel("Num runs!!!"));
+  		controlPanel.add(new JLabel("Num runs!"));
   		controlPanel.add(numRunsText);
 
   		// set the desired simulation duration
@@ -145,12 +141,12 @@ public class EmergentCrimeWithGUI extends JFrame {
 			}
 			
 		});
-  		controlPanel.add(new JLabel("Duration!!!"));
+  		controlPanel.add(new JLabel("Duration!"));
   		controlPanel.add(durationText);
   		
   		
 
-  		controlPanel.add(new JLabel("Start date?!!!"));
+//  		controlPanel.add(new JLabel("Start date?!!!"));
 
   		
   		controlPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -167,7 +163,7 @@ public class EmergentCrimeWithGUI extends JFrame {
         scenarioPanel.setLayout(new BoxLayout(scenarioPanel, BoxLayout.X_AXIS));
         //scenarioPanel.setMaximumSize(new Dimension(300, 0));
 
-		SimPanel newPanel = new SimPanel(EmergentCrimeWithGUI.this, "Scenario 1");
+		SimPanel newPanel = new SimPanel(EmergentCrimeWithGUI.this, "Scenario 1", 1);
 		scenarioPanel.add(newPanel);
 		add(scenarioPanel);
         pack();    
@@ -176,9 +172,9 @@ public class EmergentCrimeWithGUI extends JFrame {
 		InOutUtilities.readInVectorLayer( baseLayer, "/Users/swise/workspace/CPC/data/itn/camden_itn_buff100pl2.shp", "census tracts", new Bag());
 		roads.setField(baseLayer);
 		roads.setPortrayalForAll(new GeomPortrayal(new Color(150, 150, 150), false)); 
-		map = new StaticDisplay2D(150, 150, null);
+		map = new StaticDisplay2D(300, 300, null);
 		map.attach(roads, "Roads");
-		//add(map);
+		
 		
 		mapViewer.add(map);
 		mapViewer.setVisible(true);
@@ -186,6 +182,41 @@ public class EmergentCrimeWithGUI extends JFrame {
         
 	}
 
+
+	ArrayList <GeomVectorField> scenarioHeatmaps = new ArrayList <GeomVectorField> ();
+	ArrayList <GeomVectorFieldPortrayal> scenarioHeatmapPortrayals = new ArrayList <GeomVectorFieldPortrayal> ();
+
+	public void uploadHeatmap(HashMap <String, Integer> heatmap, int scenarioNumber){
+		
+		if(scenarioNumber >= scenarioHeatmaps.size()){
+			GeomVectorField sField = new GeomVectorField();
+			InOutUtilities.readInVectorLayer( sField, "/Users/swise/workspace/CPC/data/itn/camden_itn_buff100pl2.shp", "census tracts", new Bag());
+			scenarioHeatmaps.add(sField);
+			
+			GeomVectorFieldPortrayal sPortrayal = new GeomVectorFieldPortrayal(true);
+			sPortrayal.setField(sField);
+			sPortrayal.setPortrayalForAll( new AttributePolyPortrayal(
+					new SimpleColorMap(0,60, new Color(0,0,0), new Color(255,0,0)),
+					"heatvalue", new Color(0,0,0,0), true, 5));
+					//new GeomPortrayal(new Color(250,0,0,50), false));
+			scenarioHeatmapPortrayals.add(sPortrayal);
+			
+			map.attach(sPortrayal, "Scenario " + scenarioNumber);
+			mapViewer.repaint();
+		}
+		
+		GeomVectorField myField = scenarioHeatmaps.get(scenarioNumber);
+		for(Object o: myField.getGeometries()){
+			MasonGeometry g = (MasonGeometry) o;
+			String gName = g.getStringAttribute("FID_1");
+			Integer d = heatmap.get(gName);
+			if(d == null) 
+				d = 0; 
+			g.addIntegerAttribute("heatvalue", d);
+
+		}
+	}
+	
 	
 /**	JButton chooseCADButton = new JButton("Select CAD file");
 	JButton chooseDirButton = new JButton("Select data directory");

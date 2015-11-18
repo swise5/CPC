@@ -168,15 +168,23 @@ public class OfficerRole {
 //		return 0;
 	}
 	
-	public void redirectToResponse(Coordinate location, int time, int incident) {
+	public void redirectToResponse(Coordinate location, int time, int incident, int grading) {
 
 		myIncident = incident;
 		myStatus = OfficerRole.status_enRouteToIncident;
 		
 		rolePlayer.setActivity(activity_onWayToTasking);
-		rolePlayer.setSpeed(Officer.topSpeed);
 		rolePlayer.setCurrentGoal(location);
-		rolePlayer.setMovementRule(Agent.movementRule_roadsOnlyNoLaws);
+
+		if(grading == 0){
+			rolePlayer.setSpeed(Officer.topSpeed);
+			rolePlayer.setMovementRule(Agent.movementRule_roadsOnlyNoLaws);
+		}
+		else {
+			rolePlayer.setSpeed(Officer.defaultSpeed);
+			rolePlayer.setMovementRule(Agent.movementRule_roadsOnly);
+		}
+		
 		rolePlayer.updateStatus(OfficerRole.status_enRouteToIncident);
 		nextTaskingCost = time;
 

@@ -22,19 +22,14 @@ public class FirstContact implements Steppable {
 	private static final long serialVersionUID = 1L;
 	
 	EmergentCrime world = null;
-	TreeSet <CallEvent> urgent_CAD;
-	TreeSet <CallEvent> extended_CAD;
+	TreeSet <CallEvent> CAD;
 	
 	public FirstContact(EmergentCrime world){
 		this.world = world;
 	}
 	
 	public void setUrgentCAD(TreeSet <CallEvent> CAD){
-		this.urgent_CAD = CAD;
-	}
-	
-	public void setExtendedCAD(TreeSet <CallEvent> extended_CAD){
-		this.extended_CAD = extended_CAD;
+		this.CAD = CAD;
 	}
 	
 	@Override
@@ -48,10 +43,8 @@ public class FirstContact implements Steppable {
 			
 			if(call.getGrade() == 3) // it was redirected - no need to take any action
 				return 0;
-			if(call.getGrade() == 2 && !world.rolesDisabled)
-				extended_CAD.add(call);
-			else
-				urgent_CAD.add(call);
+			if(!world.rolesDisabled)
+				CAD.add(call);
 
 		}
 		return 0;

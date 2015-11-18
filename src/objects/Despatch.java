@@ -31,9 +31,16 @@ public class Despatch implements Steppable {
 	EmergentCrime world;
 	TreeSet <CallEvent> CAD;
 	ArrayList <Officer> officers = new ArrayList <Officer> ();
+
 	HashMap <Coordinate, Long> requestTickets = new HashMap <Coordinate, Long> ();
 	HashMap <Integer, ArrayList <Officer>> despatchedResponseCars = new HashMap <Integer, ArrayList <Officer>> ();
+	HashMap <Integer, CallEvent> officerArrivedYet = new HashMap <Integer, CallEvent> ();
+
 	ArrayList <Coordinate> requestsForTransport = new ArrayList <Coordinate> ();
+	
+	ArrayList <Integer> eCallsTime = new ArrayList <Integer> (),
+			sCallsTime = new ArrayList <Integer> (),
+			iCallsTime = new ArrayList <Integer> ();
 	
 	public Despatch(TreeSet <CallEvent> CAD, ArrayList <Officer> officers, EmergentCrime world){
 		super();
@@ -47,11 +54,24 @@ public class Despatch implements Steppable {
 		
 		boolean possiblyAvailable = true;
 
-		while(CAD.size() > 0 && possiblyAvailable){
+		while(CAD.size() > 0 && possiblyAvailable && CAD.first().getTime() <= world.schedule.getTime()){
 			
 			CallEvent event = CAD.first();
-//			int numOfficersRequested = 3 - event.getGrade(); // 3 for I, 2 for S, 1 for E
-			int tasked = 0;
+			
+			int grade = event.getGrade();
+			if(grade == 0)
+				System.out.print("");
+						
+/*			// make sure we're not trying to assign officers to an incident that has yet to happen!
+			double eventTime = event.getTime();
+			double worldTime = world.schedule.getTime();
+			if(event.getTime() > world.schedule.getTime()){
+				System.out.println("ERROR: Despatch called to assign an event too soon");
+				possiblyAvailable = false;
+				continue;
+			}
+	*/		
+			boolean tasked = false;
 			int incidentID = event.getIncidentNumber();
 			ArrayList <Officer> assignedResponseCars = new ArrayList <Officer> ();
 			if(despatchedResponseCars.containsKey(incidentID)){
@@ -60,7 +80,7 @@ public class Despatch implements Steppable {
 			
 			Bag nearbyOfficers = new Bag();
 			double searchDistance = 100;
-			while(nearbyOfficers.size() < officers.size() && tasked < 1){//numOfficersRequested){
+			while(nearbyOfficers.size() < officers.size() && !tasked){
 				
 				nearbyOfficers = world.officerLayer.getObjectsWithinDistance(event.getLocation(), searchDistance);
 
@@ -73,31 +93,34 @@ public class Despatch implements Steppable {
 					if( !(oStatus == OfficerRole.status_available_resumePatrol || oStatus == OfficerRole.status_committedButDeployable 
 							|| oStatus == OfficerRole.status_available_office || oStatus == OfficerRole.status_refs) )
 						continue;
-//					if(o.getSpeed() < 1000 && searchDistance > 1000) // past a certain distance, only take cars
-//						continue;
+
+					// determine based on officer role whether they are suitable for this call event
 					OfficerRole tasking = o.getRole();
-					if(tasking instanceof ResponseCarRole || world.rolesDisabled){
-						tasking.redirectToResponse(event.getLocation().getCoordinate(), world.param_responseCarTimeCommitment, incidentID);
-						//3 + state.random.nextInt(22));
+					if((tasking instanceof ResponseCarRole && grade < 2) || world.rolesDisabled){
+						tasking.redirectToResponse(event.getLocation().getCoordinate(), world.param_responseCarTimeCommitment, incidentID, grade);
 						assignedResponseCars.add(o);
-						tasked++;
+						tasked = true;
 						break;
 					}
-//					if(tasked >= numOfficersRequested)
-//						break;
+					else if(tasking instanceof ReportCarRole){
+						tasking.redirectToResponse(event.getLocation().getCoordinate(), world.param_responseCarTimeCommitment, incidentID, grade);
+						assignedResponseCars.add(o);
+						tasked = true;
+						break;						
+					}
 				}
 				
-				if(tasked >= 1 ||//numOfficersRequested ||	// have found enough officers
-						tasked > 0 && officers.size() == nearbyOfficers.size()){ // only one officer available, will have to do! 
+				if(tasked){	// have found an officer
 					CAD.remove(event);
+					if(! officerArrivedYet.containsKey(incidentID))
+						officerArrivedYet.put(incidentID, event);
 					despatchedResponseCars.put(incidentID, assignedResponseCars);
-					tasked = 10; // break out of the loop
 				}
 				else // search further!!
 					searchDistance *= 2;
 			}
 			
-			if(tasked < 1)//numOfficersRequested)
+			if(!tasked)
 				possiblyAvailable = false; // no one else is free to assign, let it go
 
 		}
@@ -105,7 +128,10 @@ public class Despatch implements Steppable {
 		// despatch any necessary transport vans
 		possiblyAvailable = true;
 		while(requestsForTransport.size() > 0 && possiblyAvailable){
+			
 			Coordinate location = requestsForTransport.get(0);
+			
+			// make sure this record actually exists
 			if(location == null || requestTickets.get(location) == null){
 				requestsForTransport.remove(0);
 				continue;
@@ -127,19 +153,19 @@ public class Despatch implements Steppable {
 					Officer o = (Officer) obj;
 					int oStatus = o.getStatus();
 					
-					// if the Officer is not in an available state, just continue
+					// if the Officer is not in an available state, continue searching
 					if( !(oStatus == OfficerRole.status_available_resumePatrol || oStatus == OfficerRole.status_committedButDeployable 
 							|| oStatus == OfficerRole.status_available_office || oStatus == OfficerRole.status_refs) )
 						continue;
 					OfficerRole tasking = o.getRole();
 					if(tasking == null){
-						System.out.println("LOLWUT");
+						System.out.println("ERROR: officer has not been assigned a tasking");
 						continue;
 					}
 					if(tasking instanceof TransportVanRole){
 						Object myObject = requestTickets.get(location);
 						if(myObject == null)
-							System.out.println("why");
+							System.out.println("ERROR: no open requests for service at this location");
 						((TransportVanRole)tasking).redirectToResponse(location, requestTickets.get(location));
 						tasked = true;
 						finished = true;
@@ -150,7 +176,6 @@ public class Despatch implements Steppable {
 				
 				if(tasked){
 					requestsForTransport.remove(0);
-//					requestTickets.remove(location);
 				}
 				else
 					searchDistance *= 2;
@@ -196,4 +221,52 @@ public class Despatch implements Steppable {
 			}
 		}
 	}
+	
+	
+	public void recordResponseTime(int incidentID){
+		
+		// make sure that we don't record the times of the second, third, etc. officer to respond
+		if(!officerArrivedYet.containsKey(incidentID)){
+			return;			
+		}
+		
+		// calculate the time between now and the call for service and add to the appropriate pile
+		CallEvent event = officerArrivedYet.remove(incidentID);
+		int time = (int)(world.schedule.getTime() - event.getTime());
+		
+		// add this value to the appropriate list
+		int grade = event.getGrade();
+		
+		if(grade == 0 && time > 10)
+			System.out.println("why");
+		
+		if(grade == 0) iCallsTime.add(time);
+		else if(grade == 1) sCallsTime.add(time);
+		else if(grade == 2) eCallsTime.add(time);
+		else System.out.println("ERROR: unhandled call grade in Despatch's recordResponseTime function");
+	}
+
+	public double[] getAverageResponseTimes() {
+		double [] responseTimes = new double [3];
+		double result = 0;
+		for(int i: iCallsTime){
+			result += i;
+		}
+		responseTimes[0] = result / Math.max(1, iCallsTime.size());
+		
+		result = 0;
+		for(int i: sCallsTime){
+			result += i;
+		}
+		responseTimes[1] = result / Math.max(1, sCallsTime.size());
+		
+		result = 0;
+		for(int i: eCallsTime){
+			result += i;
+		}
+		responseTimes[2] = result / Math.max(1, eCallsTime.size());
+		
+		return responseTimes;
+	}
+
 }

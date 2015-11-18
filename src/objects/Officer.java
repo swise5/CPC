@@ -20,6 +20,8 @@ public class Officer extends Agent {
 
 	Vehicle currentVehicle = null;
 	
+	int [] timeOnStatus = new int[13];
+	double lastStatusChange = 0;
 	
 	int taskTime = -1;
 	int ticksSpentTraveling = -1;
@@ -62,7 +64,7 @@ public class Officer extends Agent {
 		}
 		else if(taskingType.equals("report")){
 			role = new ReportCarRole(this, 
-					world.networkLayer.getObjectsWithinDistance(world.fa.createPoint(homeStation), distanceToPoints), world.random, world);
+					world.networkLayer.getObjectsWithinDistance(world.fa.createPoint(homeStation), distanceToPoints), world);
 			myTaskingType = 2;
 		}
 		else if(taskingType.equals("transport")){
@@ -125,11 +127,22 @@ public class Officer extends Agent {
 			return 1;
 	}
 
+	// HANDLING STATUS INFO
+	
+	public void updateStatusTimes(){ 
+		timeOnStatus[myStatus] += world.schedule.getTime() - lastStatusChange;
+		lastStatusChange = world.schedule.getTime();
+	}
+	public int [] getStatusTimes(){ return timeOnStatus; }
+	public void resetStatusTimes(){ timeOnStatus = new int [13]; }
+	
 	public void updateStatus(int newStatus){
+		updateStatusTimes();
 		myStatus = newStatus;
 		this.addIntegerAttribute("status", newStatus);
 	}
 
+	// STEPPERS
 
 	public double externalStep(SimState state){
 		
@@ -151,8 +164,12 @@ public class Officer extends Agent {
 			System.out.println(this.getActivity() + "\t" + this.arrivedAtGoal());
 		}
 		int currentStatus = ((OfficerRole)role).getStatus();
-		if(myStatus != currentStatus)
+		
+		// update status information
+		if(myStatus != currentStatus){
+			//updateStatusTimes();
 			updateStatus(currentStatus);
+		}
 		state.schedule.scheduleOnce(nextActivation, this);
 
 /*		if(laggedStatus != myStatus){
@@ -161,74 +178,7 @@ public class Officer extends Agent {
 		}
 	*/	laggedStatus = myStatus;
 		
-//		timeOnDuty++;
-		/*
-		if(myStatus == status_offduty){
-			updateStatus(status_available);
-			System.out.println(world.schedule.getTime() + ": " + this.toString() + " CAME ON DUTY");
-		}
-		
-		// check to see if the Officer is involved in some tasking
-		if(path == null && hasTasking == true && taskTime > 0){
-			
-			taskTime--; // if so, spend this step on the task
-			
-			if(taskTime == 0){ // finished after this step! Reset
-				updateStatus(status_available);
-				hasTasking = false;
-				taskTime = -1;
-				world.recordTravelTime(ticksSpentTraveling);
-				System.out.println(world.schedule.getTime() + ": " + this.toString() + " FINISHED at " + this.geometry.toString());
-			}
-			
-			world.schedule.scheduleOnce(this, EmergentCrime.ordering_officers);
-			return;
-		}
-		
-		/*
-		Bag crimes = world.crimeLayer.getObjectsWithinDistance(this, crimeDetectionRadius);
-		if(crimes.size() > 0){
-			CrimeEvent ce = (CrimeEvent) crimes.get(0);
-			Agent a = ce.getOffenders().iterator().next();
-			int success = detain(a);
-		}
-		*/
-		
-/*		// done with a shift? Go off duty!
-		if(timeOnDuty > 96){
-			
-			// already at the station? Just go off duty!
-			if(geometry.getCoordinate().distance(work) < EmergentCrime.resolution){
-				updateStatus(status_offduty);
-				int time = this.getTime(4 + 8 * myShift, 0);
-				world.schedule.scheduleOnce(time, EmergentCrime.ordering_officers, this);
-				System.out.println(world.schedule.getTime() + ": " + this.toString() + " WENT OFF DUTY");
-				timeOnDuty = 0;
-				return;
-			}
-			
-			// otherwise head back to the station
-			else {
-				//updateStatus(status_occupied);
-				headFor(work, familiarRoadNetwork);
-			}
-		}
-		
-		// if the Officer has a place to go, go to it!
-		if(path != null){
-			navigate(world.resolution);
-			if(hasTasking == true)
-				ticksSpentTraveling++;
-		}
-
-		// if no such course exists, pick a random new point and move to it
-		else {
-			GeoNode gn = (GeoNode) world.roadNodes.get(world.random.nextInt(world.roadNodes.size()));
-			headFor(gn.geometry.getCoordinate(), familiarRoadNetwork);
-		}
-
-		world.schedule.scheduleOnce(this, EmergentCrime.ordering_officers);
-*/	}
+}
 	
 	public int getStatus(){ return myStatus; }
 	public OfficerRole getRole(){ return this.role;}
