@@ -76,14 +76,15 @@ public class ResponseCarRole extends OfficerRole {
 				if(myStatus == status_enRouteToIncident)
 					despatch.recordResponseTime(myIncident);
 
-				if(rolePlayer.getGoal() == rolePlayer.getWork())
-					myStatus = status_available_office;
+				if(rolePlayer.getGoal().equals(rolePlayer.getWork()))
+					myStatus = status_committedAndUnavailable;//status_available_office;
 				else
 					myStatus = status_atSceneOfIncident;
 				
+				rolePlayer.updateStatus(myStatus);
 				rolePlayer.setActivity(activity_dealingWithTasking);
 				
-				if(random.nextDouble() < rolePlayer.getWorld().param_redeployProb)
+				if(myStatus == status_atSceneOfIncident && random.nextDouble() < rolePlayer.getWorld().param_redeployProb)
 					despatch.receiveReportOfDowngradeInSeverity(myIncident, (Officer)rolePlayer);
 				
 				if(verbose)

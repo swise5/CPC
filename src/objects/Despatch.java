@@ -59,7 +59,7 @@ public class Despatch implements Steppable {
 			CallEvent event = CAD.first();
 			
 			int grade = event.getGrade();
-			if(grade == 0)
+			if(grade == 0) // TODO get rid of
 				System.out.print("");
 						
 /*			// make sure we're not trying to assign officers to an incident that has yet to happen!

@@ -125,9 +125,9 @@ public class EmergentCrime extends SimState {
 	
 	Envelope MBR = null;
 	
-	boolean verbose = false;
+	public boolean verbose = false;
 	public int taskingTypeBeingStudied = 1; // 1 = enabled, 0 = disabled, -1 = random stations
-	
+		
 	/////////////// END Objects //////////////////////////////////////////
 
 	public HashMap <Edge, Integer> edgeHeatmap = new HashMap <Edge, Integer> ();
@@ -155,7 +155,7 @@ public class EmergentCrime extends SimState {
 	/**
 	 * Read in data and set up the simulation
 	 */
-	public void start()
+	public synchronized void start()
     {
 		super.start();
 		try {
@@ -319,6 +319,9 @@ public class EmergentCrime extends SimState {
 			else if(taskingTypeBeingStudied == -1)
 				testAgentsCOMPLETELYRANDOM(stationNodes);
 
+			else if(taskingTypeBeingStudied == 2)
+				testFewerAgents(stationNodes);
+			
 			else
 				System.out.println("ERROR: no tasking option selected");
 			
@@ -344,7 +347,7 @@ public class EmergentCrime extends SimState {
 			myStatusRecorder = new StatusReporter();
 	        schedule.scheduleRepeating(0,1, myStatusRecorder, statusReporterInterval);
 	        
-	        schedule.scheduleRepeating(0, new Steppable(){
+/*	        schedule.scheduleRepeating(0, new Steppable(){
 
 				@Override
 				public void step(SimState state) {
@@ -356,7 +359,7 @@ public class EmergentCrime extends SimState {
 				}
 	        	
 	        }, 1);
-		} catch (Exception e) { e.printStackTrace();}
+	*/	} catch (Exception e) { e.printStackTrace();}
 		
 		
     }
@@ -375,6 +378,9 @@ public class EmergentCrime extends SimState {
         		o.resetStatusTimes();
         	}
     
+        	for(int i = 0; i < 13; i++){
+        		sumOfStatuses[i] += statusRecord[i];
+        	}
         	statusRecord = sumOfStatuses;
 /*        	String result = "";
         	for(int i = 0; i < 13; i++){
@@ -398,6 +404,39 @@ public class EmergentCrime extends SimState {
 		// WEST HAMPSTEAD = 4
  
 		int [] patrolStationList = {3, 3, 3, 3, 3, 4, 4, 4, 2, 2, 1};
+		for(int i: patrolStationList){
+			GeoNode myNode = stationNodes.get(i);
+			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+			officers.add(off);				
+		}
+		
+		int [] reportStationList = {3, 3, 4, 0, 2, 2};
+		for(int i: reportStationList){
+			GeoNode myNode = stationNodes.get(i);
+			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+			officers.add(off);				
+		}
+
+		int [] transportStationList = {3, 2};
+		for(int i: transportStationList){
+			GeoNode myNode = stationNodes.get(i);
+			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "transport");
+			officers.add(off);				
+		}
+	}
+	
+	void testFewerAgents(ArrayList <GeoNode> stationNodes){
+
+		// ALBANY = 0
+		// HAMPSTEAD = 1
+		// HOLBORN = 2
+		// KENTISH TOWN = 3
+		// WEST HAMPSTEAD = 4
+ 
+		int [] patrolStationList = {3, 3, 3, 3, 4, 4, 2, 1};
 		for(int i: patrolStationList){
 			GeoNode myNode = stationNodes.get(i);
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
@@ -996,7 +1035,7 @@ public class EmergentCrime extends SimState {
 					
 					// other calls may have happened at the same time: make sure all these calls are handled as well!
 					double currentTime = state.schedule.getTime();
-					while(callTimes.get(0).getTime() <= currentTime){
+					while(callTimes.size() > 0 && callTimes.get(0).getTime() <= currentTime){
 						call = callTimes.remove(0);
 						firstContact.receiveCall(null, call);
 						crimeLayer.addGeometry(new MasonGeometry(call.getLocation()));

@@ -252,7 +252,7 @@ public class Agent extends TrafficAgent implements Serializable {
 				}
 				
 				// make sure we're moving in the correct direction along the Edge
-				if(node == edge.to()){
+				if(node.equals(edge.to())){
 					direction = 1;
 					currentIndex = Math.max(currentIndex, startIndex);
 				} else {

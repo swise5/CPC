@@ -83,16 +83,18 @@ public class Officer extends Agent {
 	
 	public int navigate(double resolution){
 		
-		if(world.schedule.getTime() - (10 / world.temporalResolution_minutesPerTick) > lastTimeTraveled){
-			if(positionRecord.length() > 0)
-				positionRecord += "\t</coordinates>\n</LineString>\n</Placemark>\n";
-			positionRecord += "<Placemark><name>" + myID + 
-					"</name>\n<LineString>\n<extrude>1</extrude>\n<tessellate>1</tessellate>\n<altitudeMode>absolute</altitudeMode>\n<coordinates>";
+		if(world.verbose){
+			if(world.schedule.getTime() - (10 / world.temporalResolution_minutesPerTick) > lastTimeTraveled){
+				if(positionRecord.length() > 0)
+					positionRecord += "\t</coordinates>\n</LineString>\n</Placemark>\n";
+				positionRecord += "<Placemark><name>" + myID + 
+						"</name>\n<LineString>\n<extrude>1</extrude>\n<tessellate>1</tessellate>\n<altitudeMode>absolute</altitudeMode>\n<coordinates>";
 
-		}
-		else {
-			Coordinate mypos = geometry.getCoordinate();
-			positionRecord += mypos.x + "," + mypos.y + ",1\n";
+			}
+			else {
+				Coordinate mypos = geometry.getCoordinate();
+				positionRecord += mypos.x + "," + mypos.y + ",1\n";
+			}
 		}
 
 		lastTimeTraveled = (int)world.schedule.getTime();
@@ -107,7 +109,7 @@ public class Officer extends Agent {
 		double time = 1;//speed;
 		while(path != null && time > 0){
 			time = move(time, speed, resolution);
-			if(edge != null && !edge.toString().equals(lastEdgeTravelled)){
+			if(edge != null && !edge.toString().equals(lastEdgeTravelled)){ // TODO make this less bad
 				world.updateEdgeHeatmap(edge);
 
 			}
@@ -165,11 +167,14 @@ public class Officer extends Agent {
 		}
 		int currentStatus = ((OfficerRole)role).getStatus();
 		
-		// update status information
+/*		// update status information
 		if(myStatus != currentStatus){
 			//updateStatusTimes();
 			updateStatus(currentStatus);
 		}
+	*/
+		updateStatus(currentStatus);
+
 		state.schedule.scheduleOnce(nextActivation, this);
 
 /*		if(laggedStatus != myStatus){

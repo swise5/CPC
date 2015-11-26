@@ -18,10 +18,7 @@ public class OfficerRole {
 
 	
 	double vehicle = -1;
-/*	public static double speed_vehicle = 2000;
-	public static double speed_vehicle_noLights = 3000;
-	public static double speed_foot = 800;
-*/
+
 	// STATUSES ////////////
 	
 	public static int status_onDuty = 1;
@@ -74,13 +71,6 @@ public class OfficerRole {
 		
 		// ************** BEGINNING THE DAY *********************
 		int myActivity = this.rolePlayer.getActivity();
-		
-		// USED TO OVERRIDE TODO TAK EIT OUT
-/*		if(myStatus == status_available && myActivity == activity_patrolling){
-			shiftEndTime = Integer.MAX_VALUE;
-			return time + executePersonalTasking();
-		}
-*/
 		
 		// if activated while off-duty, it's time for work
 		if (myStatus == status_offDuty && rolePlayer.geometry.getCoordinate().distance(station) < EmergentCrime.spatialResolution) {
@@ -175,6 +165,7 @@ public class OfficerRole {
 		
 		rolePlayer.setActivity(activity_onWayToTasking);
 		rolePlayer.setCurrentGoal(location);
+		rolePlayer.updateStatus(OfficerRole.status_enRouteToIncident);
 
 		if(grading == 0){
 			rolePlayer.setSpeed(Officer.topSpeed);
@@ -185,7 +176,6 @@ public class OfficerRole {
 			rolePlayer.setMovementRule(Agent.movementRule_roadsOnly);
 		}
 		
-		rolePlayer.updateStatus(OfficerRole.status_enRouteToIncident);
 		nextTaskingCost = time;
 
 		if(verbose)

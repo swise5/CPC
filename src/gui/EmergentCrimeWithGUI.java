@@ -31,21 +31,20 @@ public class EmergentCrimeWithGUI extends JFrame {
 
 	JButton quitButton = new JButton("Quit");
 	JButton addNewScenarioButton = new JButton("Add New Scenario");
-	int scenarios = 1;
+	int numScenarios = 1;
 
 	JPanel controlPanel = new JPanel();
 	JPanel scenarioPanel = new JPanel();
 	
+	ArrayList <SimPanel> scenarios = new ArrayList <SimPanel> ();
+	
 	// RUN PARAMETERS
 
-	int numRuns = 5;
-	int duration = 1440; // a day
+	int numRuns = 1;
+	int duration = 1440; // 1 day(s)
 	
 	// TEXT FIELDS
 	
-	JTextField numRunsText = new JTextField(3);
-	JTextField durationText = new JTextField(3);
-
 	// MAP SETUP
 	
 	JFrame mapViewer = new JFrame();
@@ -60,7 +59,20 @@ public class EmergentCrimeWithGUI extends JFrame {
 
 	final JFileChooser fileChooser = new JFileChooser(), dirChooser = new JFileChooser();
 	
+	public SimPanel addNewScenario(String name, String description){
+		numScenarios++;
+		SimPanel newPanel = new SimPanel(EmergentCrimeWithGUI.this, name, numScenarios, description);
+		scenarioPanel.add(newPanel);
+		scenarioPanel.revalidate();
+		scenarios.add(newPanel);
+		EmergentCrimeWithGUI.this.pack();
+		return newPanel;
+	}
 	
+	public SimPanel getScenario(int i){
+		return scenarios.get(i);
+	}
+		
 	public EmergentCrimeWithGUI() {
 
 		//
@@ -85,11 +97,7 @@ public class EmergentCrimeWithGUI extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				if(event.getSource() == addNewScenarioButton){
-					scenarios++;
-					SimPanel newPanel = new SimPanel(EmergentCrimeWithGUI.this, "Scenario " + scenarios, scenarios);
-					scenarioPanel.add(newPanel);
-					scenarioPanel.revalidate();
-					EmergentCrimeWithGUI.this.pack();
+					addNewScenario("Scenario " + numScenarios, "New scenario");
 				}
 			}
 		});
@@ -108,42 +116,7 @@ public class EmergentCrimeWithGUI extends JFrame {
 		});
   		controlPanel.add(quitButton);
         
-  		// set the number of runs to do
-  		
-  		numRunsText.setText("" + numRuns);
-		numRunsText.addActionListener(new ActionListener(){
 
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				if(event.getSource() == numRunsText){
-					int textVal = Integer.parseInt(numRunsText.getText());
-					numRuns = textVal;
-				}
-				
-			}
-			
-		});
-  		controlPanel.add(new JLabel("Num runs!"));
-  		controlPanel.add(numRunsText);
-
-  		// set the desired simulation duration
-  		
-  		durationText.setText("" + duration);
-  		durationText.addActionListener(new ActionListener(){
-
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				if(event.getSource() == durationText){
-					int textVal = Integer.parseInt(durationText.getText());
-					duration = textVal;
-				}
-				
-			}
-			
-		});
-  		controlPanel.add(new JLabel("Duration!"));
-  		controlPanel.add(durationText);
-  		
   		
 
 //  		controlPanel.add(new JLabel("Start date?!!!"));
@@ -163,8 +136,11 @@ public class EmergentCrimeWithGUI extends JFrame {
         scenarioPanel.setLayout(new BoxLayout(scenarioPanel, BoxLayout.X_AXIS));
         //scenarioPanel.setMaximumSize(new Dimension(300, 0));
 
-		SimPanel newPanel = new SimPanel(EmergentCrimeWithGUI.this, "Scenario 1", 1);
+		SimPanel newPanel = new SimPanel(EmergentCrimeWithGUI.this, "Scenario 1", 1, "The default scenario. The simulation reflects the baseline level "
+				+ "of activity and movement of officers in the borough of Camden during March 2011, and serves as a point of comparison"
+				+ " against which changes to the conditions can be tested.\n\n");
 		scenarioPanel.add(newPanel);
+		scenarios.add(newPanel);
 		add(scenarioPanel);
         pack();    
         
@@ -172,40 +148,52 @@ public class EmergentCrimeWithGUI extends JFrame {
 		InOutUtilities.readInVectorLayer( baseLayer, "/Users/swise/workspace/CPC/data/itn/camden_itn_buff100pl2.shp", "census tracts", new Bag());
 		roads.setField(baseLayer);
 		roads.setPortrayalForAll(new GeomPortrayal(new Color(150, 150, 150), false)); 
-		map = new StaticDisplay2D(300, 300, null);
+		map = new StaticDisplay2D(400, 400, null);
 		map.attach(roads, "Roads");
 		
-		
 		mapViewer.add(map);
+		mapViewer.setSize(500, 500);
 		mapViewer.setVisible(true);
-
         
 	}
 
 
+	//
+	//
+	// VISUALISATION OF THE MAPS
+	//
+	//
+	
 	ArrayList <GeomVectorField> scenarioHeatmaps = new ArrayList <GeomVectorField> ();
 	ArrayList <GeomVectorFieldPortrayal> scenarioHeatmapPortrayals = new ArrayList <GeomVectorFieldPortrayal> ();
 
+	HashMap <Integer, GeomVectorField> scenarioHeats = new HashMap <Integer, GeomVectorField> ();
+	HashMap <Integer, GeomVectorFieldPortrayal> scenarioHeatsPorts = new HashMap <Integer, GeomVectorFieldPortrayal> ();
+	
+	Color [] heatmapColors = new Color[]{Color.red, Color.blue, Color.green};
+	
 	public void uploadHeatmap(HashMap <String, Integer> heatmap, int scenarioNumber){
 		
-		if(scenarioNumber >= scenarioHeatmaps.size()){
+		if(! scenarioHeats.containsKey(scenarioNumber)){//scenarioNumber >= scenarioHeatmaps.size()){
 			GeomVectorField sField = new GeomVectorField();
 			InOutUtilities.readInVectorLayer( sField, "/Users/swise/workspace/CPC/data/itn/camden_itn_buff100pl2.shp", "census tracts", new Bag());
-			scenarioHeatmaps.add(sField);
+			scenarioHeats.put(scenarioNumber, sField);
+			//scenarioHeatmaps.add(sField);
 			
 			GeomVectorFieldPortrayal sPortrayal = new GeomVectorFieldPortrayal(true);
 			sPortrayal.setField(sField);
 			sPortrayal.setPortrayalForAll( new AttributePolyPortrayal(
-					new SimpleColorMap(0,60, new Color(0,0,0), new Color(255,0,0)),
+					new SimpleColorMap(0,60, new Color(0,0,0,0), heatmapColors[scenarioNumber - 1]),
 					"heatvalue", new Color(0,0,0,0), true, 5));
 					//new GeomPortrayal(new Color(250,0,0,50), false));
-			scenarioHeatmapPortrayals.add(sPortrayal);
-			
+			//scenarioHeatmapPortrayals.add(sPortrayal);
+			scenarioHeatsPorts.put(scenarioNumber, sPortrayal);
+						
 			map.attach(sPortrayal, "Scenario " + scenarioNumber);
 			mapViewer.repaint();
 		}
 		
-		GeomVectorField myField = scenarioHeatmaps.get(scenarioNumber);
+		GeomVectorField myField = scenarioHeats.get(scenarioNumber);//scenarioHeatmaps.get(scenarioNumber - 1);
 		for(Object o: myField.getGeometries()){
 			MasonGeometry g = (MasonGeometry) o;
 			String gName = g.getStringAttribute("FID_1");
@@ -216,124 +204,6 @@ public class EmergentCrimeWithGUI extends JFrame {
 
 		}
 	}
-	
-	
-/**	JButton chooseCADButton = new JButton("Select CAD file");
-	JButton chooseDirButton = new JButton("Select data directory");
-	JButton runSimulationButton = new JButton("RUN THE SIMULATION");
-
-	JSlider reportProbSlider = new JSlider(JSlider.HORIZONTAL, 0, 100, 10);
-
-	SimulationParameters settings = new SimulationParameters();;
-
-	private JPanel parameterSetting() {
-
-		// IDENTIFY THE DATA INPUTS TO THIS MODEL
-
-		chooseCADButton.setToolTipText("The file listing the calls for service. SHOULD INCLUDE DESCRIPTION OF FILE FORMAT!!!");
-		chooseCADButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-			    //Handle open button action.
-			    if (event.getSource() == chooseCADButton) {
-			        int returnVal = fileChooser.showOpenDialog(EmergentCrimeWithGUI.this);
-			        if (returnVal == JFileChooser.APPROVE_OPTION) {
-			            File file = fileChooser.getSelectedFile();
-			            settings.cadFile = file.getAbsolutePath();
-			        }
-			   }
-			}
-		});
-		
-		dirChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		chooseDirButton.setToolTipText("The directory in which the relevant datafiles are stored");
-		chooseDirButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-			    //Handle open button action.
-			    if (event.getSource() == chooseDirButton) {
-			    	
-			        int returnVal = dirChooser.showOpenDialog(EmergentCrimeWithGUI.this);
-			        if (returnVal == JFileChooser.APPROVE_OPTION) {
-			            File file = dirChooser.getSelectedFile();
-			            settings.dataDir = file.getAbsolutePath();
-			        }
-			   }
-			}
-		});
-		
-		// SLIDERS FOR SETTABLE PARAMETERS
-
-		reportProbSlider.addChangeListener(new ChangeListener(){
-
-			@Override
-			public void stateChanged(ChangeEvent event) {
-				// TODO Auto-generated method stub
-				if(event.getSource() == reportProbSlider){
-					settings.reportProb = reportProbSlider.getValue() / 100.; 
-				}
-			}
-		});
-
-		//Turn on labels at major tick marks.
-		reportProbSlider.setMajorTickSpacing(20);
-		reportProbSlider.setMinorTickSpacing(5);
-		reportProbSlider.setPaintTicks(true);
-		reportProbSlider.setPaintLabels(true);
-		
-		//
-		// RUNNING THE SIMULATION!!!!
-		//
-		
-		runSimulationButton.setToolTipText("Run the simulation with the specified parameters");
-		runSimulationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-			    //Handle open button action.
-			    if (event.getSource() == runSimulationButton) {
-			    	EmergentCrime ec = new EmergentCrime(settings.seed);
-					ec.taskingTypeBeingStudied = settings.rolesEnabled;
-					if(ec.taskingTypeBeingStudied == 0)
-						ec.rolesDisabled = true;
-					
-					ec.dirName = settings.dataDir + "/";
-					ec.fileName = settings.filename;
-					ec.param_reportProb = settings.reportProb;
-					ec.param_transportRequestProb = settings.transportProb;
-					ec.param_reportTimeCommitment = settings.reportTime;
-					ec.cadFile = settings.cadFile;
-
-			    	ec.start();
-			    	while(ec.schedule.getTime() < 10){
-			    		ec.schedule.step(ec);
-			    	}
-			    	ec.finish();
-			   }
-			}
-		});
-		
-		//
-		// Add a new panel!
-		//
-
-		
-		// Set up the panel to hold the buttons
-
-		JPanel setupPanel = new JPanel();
-
-        setupPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        setupPanel.setLayout(new BoxLayout(setupPanel, BoxLayout.Y_AXIS));
-        setupPanel.setMaximumSize(new Dimension(300, 0));
-
-        setupPanel.add(new JLabel("Select Parameters for the Simulation"));
-        setupPanel.add(chooseCADButton);
-        setupPanel.add(chooseDirButton);
-        setupPanel.add(reportProbSlider);
-        setupPanel.add(runSimulationButton);
-        
-        return setupPanel;        
-	}
-	*/
 	
 	/**
 	 * Run the thing

@@ -52,9 +52,23 @@ public class ReportCarRole extends OfficerRole {
 				if(myStatus == status_enRouteToIncident)
 					despatch.recordResponseTime(myIncident);
 
-				myStatus = status_committedButDeployable;
-				rolePlayer.setActivity(activity_dealingWithTasking);
+				if(rolePlayer.getGoal().equals(rolePlayer.getWork()))
+					myStatus = status_committedAndUnavailable;//status_available_office;
+				else
+					myStatus = status_atSceneOfIncident;
 				
+				rolePlayer.updateStatus(myStatus);
+				rolePlayer.setActivity(activity_dealingWithTasking);
+
+		//		myStatus = status_committedButDeployable;
+		//		rolePlayer.setActivity(activity_dealingWithTasking);
+
+				if(myStatus == status_atSceneOfIncident && random.nextDouble() < rolePlayer.getWorld().param_redeployProb && myIncident != 1) // TODO: take this hack back out!!!!
+					despatch.receiveReportOfDowngradeInSeverity(myIncident, (Officer)rolePlayer);
+				
+				if(verbose)
+					System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "deal with incident");
+
 				return world.param_reportTimeCommitment;//(random.nextInt(4) + 1) * 15;
 			}
 			else
