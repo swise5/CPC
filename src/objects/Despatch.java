@@ -12,7 +12,6 @@ import objects.roles.ResponseCarRole;
 import objects.roles.ReportCarRole;
 import objects.roles.TransportVanRole;
 import sim.EmergentCrime;
-import sim.EmergentCrime.CallEvent;
 import sim.engine.SimState;
 import sim.engine.Steppable;
 import sim.util.Bag;

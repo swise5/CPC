@@ -168,11 +168,11 @@ public class OfficerRole {
 		rolePlayer.updateStatus(OfficerRole.status_enRouteToIncident);
 
 		if(grading == 0){
-			rolePlayer.setSpeed(Officer.topSpeed);
+			rolePlayer.setSpeed(rolePlayer.getWorld().param_topSpeed);
 			rolePlayer.setMovementRule(Agent.movementRule_roadsOnlyNoLaws);
 		}
 		else {
-			rolePlayer.setSpeed(Officer.defaultSpeed);
+			rolePlayer.setSpeed(rolePlayer.getWorld().param_defaultSpeed);
 			rolePlayer.setMovementRule(Agent.movementRule_roadsOnly);
 		}
 		

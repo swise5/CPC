@@ -17,8 +17,6 @@ public class ResponseCarRole extends OfficerRole {
 
 	Bag roadNodes = null;
 	MersenneTwisterFast random;
-//	int nextTaskingCost = -1;
-//	int myIncident = -1;
 	Despatch despatch = null;
 	long ticket = -1;
 
@@ -80,15 +78,15 @@ public class ResponseCarRole extends OfficerRole {
 					myStatus = status_committedAndUnavailable;//status_available_office;
 				else
 					myStatus = status_atSceneOfIncident;
-				
-				rolePlayer.updateStatus(myStatus);
-				rolePlayer.setActivity(activity_dealingWithTasking);
-				
+								
 				if(myStatus == status_atSceneOfIncident && random.nextDouble() < rolePlayer.getWorld().param_redeployProb)
 					despatch.receiveReportOfDowngradeInSeverity(myIncident, (Officer)rolePlayer);
 				
 				if(verbose)
 					System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "deal with incident");
+
+				rolePlayer.updateStatus(myStatus);
+				rolePlayer.setActivity(activity_dealingWithTasking);
 
 				return nextTaskingCost;
 			}
@@ -102,7 +100,7 @@ public class ResponseCarRole extends OfficerRole {
 			myStatus = status_available_resumePatrol;
 
 			rolePlayer.setActivity(activity_patrolling);
-			rolePlayer.setSpeed(Officer.defaultSpeed);
+			rolePlayer.setSpeed(rolePlayer.getWorld().param_defaultSpeed);
 			rolePlayer.setMovementRule(Agent.movementRule_roadsOnly);
 			nextTaskingCost = -1;
 			

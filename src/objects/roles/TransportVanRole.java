@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import objects.Agent;
 import objects.Officer;
 import sim.EmergentCrime;
-import sim.EmergentCrime.CallEvent;
 import sim.util.Bag;
 import swise.objects.network.GeoNode;
 

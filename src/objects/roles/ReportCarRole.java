@@ -6,7 +6,6 @@ import objects.Agent;
 import objects.Despatch;
 import objects.Officer;
 import sim.EmergentCrime;
-import sim.EmergentCrime.CallEvent;
 import sim.util.Bag;
 import swise.objects.network.GeoNode;
 
@@ -57,17 +56,14 @@ public class ReportCarRole extends OfficerRole {
 				else
 					myStatus = status_atSceneOfIncident;
 				
-				rolePlayer.updateStatus(myStatus);
-				rolePlayer.setActivity(activity_dealingWithTasking);
-
-		//		myStatus = status_committedButDeployable;
-		//		rolePlayer.setActivity(activity_dealingWithTasking);
-
 				if(myStatus == status_atSceneOfIncident && random.nextDouble() < rolePlayer.getWorld().param_redeployProb && myIncident != 1) // TODO: take this hack back out!!!!
 					despatch.receiveReportOfDowngradeInSeverity(myIncident, (Officer)rolePlayer);
 				
 				if(verbose)
 					System.out.println(rolePlayer.getTime() + "\t" + rolePlayer + "deal with incident");
+
+				rolePlayer.updateStatus(myStatus);
+				rolePlayer.setActivity(activity_dealingWithTasking);
 
 				return world.param_reportTimeCommitment;//(random.nextInt(4) + 1) * 15;
 			}

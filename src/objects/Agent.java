@@ -108,7 +108,7 @@ public class Agent extends TrafficAgent implements Serializable {
 		this.space = layer;
 
 		this.speed = speed;
-		this.minSpeed = 650; // ~5mph
+		this.minSpeed = 0;
 		
 		if(base != null){
 			Coordinate homePoint = world.snapPointToRoadNetwork(base);
@@ -135,7 +135,7 @@ public class Agent extends TrafficAgent implements Serializable {
 			this.work = null;
 		else {
 			Coordinate workPoint = world.snapPointToRoadNetwork(work);
-			this.work = workPoint;
+			this.work = (Coordinate)workPoint.clone();
 		}
 		
 		segment = new LengthIndexedLine((LineString)((MasonGeometry)edge.info).geometry);
@@ -556,21 +556,7 @@ public class Agent extends TrafficAgent implements Serializable {
 	public Coordinate getTargetDestination(){ return this.targetDestination; }
 
 	public GeoNode getNode() {return node;}
-	
-	public void setupPaths(){
-		if(work != null){
-			GeoNode workNode = world.getClosestGeoNode(this.work, EmergentCrime.spatialResolution);
-			GeoNode homeNode = world.getClosestGeoNode(this.base, EmergentCrime.spatialResolution);
-
-			ArrayList <Edge> pathFromHomeToWork = pathfinder.astarPath(homeNode, workNode, world.roads);
-			this.familiarPaths.add(pathFromHomeToWork);
-			
-			ArrayList <Edge> pathFromWorkToHome = pathfinder.astarPath(workNode, homeNode, world.roads);
-			this.familiarPaths.add(pathFromWorkToHome);
-		}
-
-	}
-	
+		
 	void stepWrapper(){ this.step(world); }
 
 	public boolean arrivedAtGoal(){

@@ -495,6 +495,196 @@ public class PathAnalysis {
 		}
 	}
 	
+	public static int msToMinutes(long l){
+		return (int)(l / 60000.);
+	}
+	
+	public void getGoldStandardFile(String dirname, String outdir, String outsuffix, String fileType){
+		try{
+			
+		File folder = new File(dirname);
+		File[] runFiles = folder.listFiles();
+	    SimpleDateFormat ft = new SimpleDateFormat ("dd/MM/yyyy HH:mm:ss");
+	    Date startDate = ft.parse("01/03/2011 00:00:00");
+
+		// Create the output file
+		BufferedWriter w = new BufferedWriter(new FileWriter("goldStandardRecord.txt"));//outdir + filename.split(fileType)[0] + outsuffix + ".txt"));
+
+		int nullCount = 0;
+		
+		HashMap <String, Double> results = new HashMap <String, Double> ();
+		
+	    // for each car, process its file
+		for (File f : runFiles) {
+
+			String filename = f.getName();
+			if (!filename.endsWith(fileType)) // only process specific kinds of files
+				continue;
+			
+			// Open the file as an input stream
+			FileInputStream fstream;
+			fstream = new FileInputStream(f.getAbsoluteFile());
+
+			// Convert our input stream to a BufferedReader
+			BufferedReader d = new BufferedReader(new InputStreamReader(fstream));
+			
+			// set up containers for information
+			String s = d.readLine(); // get rid of the header (FOR KML)
+			
+			int lastTime = -1;
+			ListEdge lastEdge = null;
+			int nextShift = -1;
+	
+/*			HashMap <String, Coordinate> lastPosRec = new HashMap <String, Coordinate> ();
+			HashMap <String, ListEdge> lastEdgeRec = new HashMap <String, ListEdge> ();
+			HashMap <String, Long> lastTimeRec = new HashMap <String, Long> ();
+			String lastStatus = "-1";
+	*/		String lastRecord = "";
+			String lastStatus = "";
+			String type = "";
+
+			//
+			// read in the file line by line
+			//
+			while ((s = d.readLine()) != null) {
+
+				
+				
+				// EXTRACT MEANINGFUL VARIABLES ---------------------------------------------
+				
+				String[] bits = s.split(","); // split into columns
+				
+				// make sure data is all there
+				if(bits.length < 16){ 
+					System.out.println("Problem with the data: not enough columns!");
+					continue;
+				}
+				else if(bits[19].equals("NULL")){
+					nullCount++;
+					continue;
+				}
+
+				String date = bits[2];
+				String status = bits[13];
+				
+				// CALCULATE THE TIME OF THIS RECORD
+				
+				if(date.length() == 10) 
+					date += " 00:00:00";
+				else if(bits[2].length() == 16) 
+					date += ":00";
+				Date myDate = ft.parse(date);	
+
+				// don't count twice for the same point
+				if(msToMinutes(myDate.getTime() - startDate.getTime()) == lastTime)
+					continue;
+
+				// set this if it's the first iteration
+				int currentShift;
+				if(lastTime < 0){
+					lastTime = msToMinutes(myDate.getTime() - startDate.getTime());
+					
+					// set up the shift info
+					currentShift = (int)Math.floor(lastTime / 480.);
+					nextShift = (currentShift + 1) * 480;
+					
+					// also set up the type of the object
+					type = bits[1]; // "type" is CAR or VAN
+				}
+				// otherwise identify the current shift we're in
+				else
+					currentShift = (int) Math.floor(msToMinutes(myDate.getTime() - startDate.getTime()) / 480.);
+
+				// calculate the amount of time that has passed since this record was "seen"
+				int timeDiff = msToMinutes(myDate.getTime() - startDate.getTime()) - lastTime;
+
+				// CHECK: if it has been more than a shift since this vehicle last changed anything,
+				// then we omit the intervening time.
+				
+				if(timeDiff > 480){
+					lastTime = msToMinutes(myDate.getTime() - startDate.getTime()); // set to now
+				}
+				
+				// CALCULATE THE SPATIALITY OF THE RECORD
+				
+				// set up the coordinates and find the closest road
+				double [] coords = new double []{Double.parseDouble(bits[18]), Double.parseDouble(bits[19])};
+				Coordinate c = new Coordinate(coords[0], coords[1]);
+				ListEdge closestEdge = getClosestEdge(c, 10);//EmergentCrime.resolution);
+
+				if(closestEdge == null)
+					continue;
+				else if(lastEdge == null)
+					lastEdge = closestEdge;
+				
+				//
+				// FIRST: when the time period of this record closes an existing gap, 
+				// fill the intervening shifts with this combination of parameters
+				//
+				
+				while(currentShift > nextShift){
+					int duration = nextShift - lastTime;
+					timeDiff -= duration;
+					
+					// create the unit name
+					String newRecord = (nextShift / 480) + "_" + ((MasonGeometry)lastEdge.info).getStringAttribute("FID_1") + "_" + lastStatus + "_" + type;
+					
+					// update the values associated with that unit
+					double val;
+					if(results.containsKey(newRecord))
+						val = results.get(newRecord);
+					else
+						val = 0.;
+					
+					results.put(newRecord, val + duration);
+
+					// update our understanding of what unit we're measuring here
+					lastRecord = newRecord;
+					lastTime = nextShift;
+
+					// update the shift being measured
+					nextShift += 480;
+				}
+				
+				//
+				// SECOND: ensure that if any aspect of this identifier has changed, it is recorded
+				//
+				
+				String newRecord = (nextShift / 480) + "_" + ((MasonGeometry)closestEdge.info).getStringAttribute("FID_1") + "_" + status + "_" + type;
+				
+				if(!newRecord.equals(lastRecord)){ // the identifier has changed!! We've moved somehow
+					
+					// update the values associated with that unit
+					double val;
+					if(results.containsKey(lastRecord))
+						val = results.get(lastRecord);
+					else
+						val = 0.;
+					
+					results.put(lastRecord, val + timeDiff);
+	
+				}
+				
+				// RECORD THE PREVIOUS VALUES
+				lastStatus = status;
+				lastEdge = closestEdge;
+				lastTime = msToMinutes(myDate.getTime() - startDate.getTime());
+				lastRecord = newRecord;
+			}
+		}
+		
+		for(String s: results.keySet()){
+			String starter = s.replace("_", "\t");
+			w.write(starter + "\t" + results.get(s) + "\n");
+		}
+		w.close();
+
+		System.out.println(nullCount);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+	
 	/**
 	 * 1) Filter out points which likely represent sampling errors (movement of > 200mph necessary between readings)
 	 * 2) Break paths where stationary for more than 10 minutes
@@ -1394,7 +1584,8 @@ public class PathAnalysis {
 					System.out.print("");
 			}
 			
-			mapStatusesToRoadnames("/Users/swise/postdoc/cpc/data/vehicleTraces/allSNAPPED/", "/Users/swise/postdoc/cpc/data/vehicleTraces/allSNAPPED/cleaned/", "", "" + fileType);
+			getGoldStandardFile("/Users/swise/postdoc/cpc/data/vehicleTraces/allSNAPPED/", "/Users/swise/postdoc/cpc/data/vehicleTraces/allSNAPPED/cleaned/", "", "" + fileType);
+//			mapStatusesToRoadnames("/Users/swise/postdoc/cpc/data/vehicleTraces/allSNAPPED/", "/Users/swise/postdoc/cpc/data/vehicleTraces/allSNAPPED/cleaned/", "", "" + fileType);
 			
 //			partitionCars("/Users/swise/Downloads/vehicle_010311_010411_snapped.csv", "/Users/swise/postdoc/cpc/data/vehicleTraces/allSNAPPED/", "", 0);//"/Users/swise/postdoc/cpc/data/vehicleTraces/CamdenMarch2011_VehiclesTime.csv", "/Users/swise/postdoc/cpc/data/vehicleTraces/ekCallsigns/", "ew");
 //			partitionCars("/Users/swise/postdoc/cpc/data/footPatrol/CamdenAPLSData.csv", "/Users/swise/postdoc/cpc/data/footPatrol/partitionedTraces/", "", 2);

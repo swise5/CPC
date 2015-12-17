@@ -1,6 +1,7 @@
 package objects;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import objects.roles.OfficerRole;
 import objects.roles.ReportCarRole;
@@ -8,6 +9,7 @@ import objects.roles.ResponseCarRole;
 import objects.roles.TransportVanRole;
 import sim.EmergentCrime;
 import sim.engine.SimState;
+import sim.field.network.Edge;
 import sim.util.geo.MasonGeometry;
 import swise.objects.network.GeoNode;
 
@@ -18,23 +20,18 @@ public class Officer extends Agent {
 	int myStatus = 0;
 	OfficerRole role = null;
 
-	Vehicle currentVehicle = null;
-	
 	int [] timeOnStatus = new int[13];
+	HashMap <String, Double> timeOnStatusPerRoad = new HashMap <String, Double> ();
 	double lastStatusChange = 0;
 	
 	int taskTime = -1;
 	int ticksSpentTraveling = -1;
-//	int timeOnDuty = -1;
 	int shiftEndTime= -1;
 	int goalMealBreakTime=-1;
 	
 	int lastTimeTraveled = -61;
-	String lastEdgeTravelled = "";
+	Edge lastEdgeTravelled = null;
 	public String positionRecord = "";
-	
-	public static double defaultSpeed = 200 * EmergentCrime.temporalResolution_minutesPerTick;//270;//535;
-	public static double topSpeed = 1000 * EmergentCrime.temporalResolution_minutesPerTick;//2000;
 	
 	int laggedStatus = OfficerRole.status_offDuty;
 
@@ -43,28 +40,28 @@ public class Officer extends Agent {
 		
 		this.addIntegerAttribute("status", myStatus);
 		this.speed = speed;
-		defaultSpeed = speed;
-//		this.myShift = world.random.nextInt(2);
 	
-		this.base = homeStation;//((GeoNode) world.roadNodes.get(world.random.nextInt(world.roadNodes.size()))).geometry.getCoordinate();
-		this.work = mainStation;//(Coordinate)work.clone();
+		this.base = (Coordinate)homeStation.clone();
+		this.work = (Coordinate)mainStation.clone();
 
 		world.schedule.scheduleOnce(world.schedule.getTime() + 1, //this.getTime(4 + 8 * myShift, 0), 
 				EmergentCrime.ordering_officers, this);
 		
 		path = null;
 		
-		int distanceToPoints = 2000;//10000;
+		int distanceToPoints = 2000;
 		
 		int myTaskingType = 0;
 		if(taskingType.equals("patrol")){
 			role = new ResponseCarRole(this, 
-					world.networkLayer.getObjectsWithinDistance(world.fa.createPoint(homeStation), distanceToPoints), world.random, world.despatch);
+					world.networkLayer.getGeometries(),//world.networkLayer.getObjectsWithinDistance(world.fa.createPoint(homeStation), distanceToPoints), 
+					world.random, world.despatch);
 			myTaskingType = 1;
 		}
 		else if(taskingType.equals("report")){
 			role = new ReportCarRole(this, 
-					world.networkLayer.getObjectsWithinDistance(world.fa.createPoint(homeStation), distanceToPoints), world);
+					world.networkLayer.getGeometries(),//world.networkLayer.getObjectsWithinDistance(world.fa.createPoint(homeStation), distanceToPoints), 
+					world);
 			myTaskingType = 2;
 		}
 		else if(taskingType.equals("transport")){
@@ -75,9 +72,8 @@ public class Officer extends Agent {
 			System.out.println("ERROR: failed tasking!!!");
 		
 		this.addIntegerAttribute("taskingType", myTaskingType);
-		minSpeed = 50;//135; // ~ 5mph
-		speed = defaultSpeed; // ~ 20mph
-//		tasking = new OfficerRole(this);
+		minSpeed = 0;
+		speed = world.param_defaultSpeed;
 	}
 	
 	
@@ -109,15 +105,16 @@ public class Officer extends Agent {
 		double time = 1;//speed;
 		while(path != null && time > 0){
 			time = move(time, speed, resolution);
-			if(edge != null && !edge.toString().equals(lastEdgeTravelled)){ // TODO make this less bad
+			if(world.verbose && edge != null && !edge.equals(lastEdgeTravelled)){
 				world.updateEdgeHeatmap(edge);
-
+				// TODO consider updating here!!!!
 			}
-			world.incrementHeatmap(this.geometry);
+			if(world.verbose)
+				world.incrementHeatmap(this.geometry);
 		}
 
 		if(edge != null)
-			lastEdgeTravelled = edge.toString();
+			lastEdgeTravelled = edge;
 		
 		if(segment != null)
 			updateLoc(segment.extractPoint(currentIndex));				
@@ -132,34 +129,40 @@ public class Officer extends Agent {
 	// HANDLING STATUS INFO
 	
 	public void updateStatusTimes(){ 
-		timeOnStatus[myStatus] += world.schedule.getTime() - lastStatusChange;
+		double timeOnThisStatus = world.schedule.getTime() - lastStatusChange;
+		timeOnStatus[myStatus] += timeOnThisStatus;
+		
+		String thisUnitKey = ((MasonGeometry)edge.getInfo()).getStringAttribute("FID_1") + "_" + myStatus;
+		Double prevTimeOnThisRoad = timeOnStatusPerRoad.get(thisUnitKey);
+		if(prevTimeOnThisRoad == null)
+			prevTimeOnThisRoad = 0.;
+		timeOnStatusPerRoad.put(thisUnitKey, prevTimeOnThisRoad + timeOnThisStatus);
+			
 		lastStatusChange = world.schedule.getTime();
 	}
 	public int [] getStatusTimes(){ return timeOnStatus; }
-	public void resetStatusTimes(){ timeOnStatus = new int [13]; }
+	public HashMap <String, Double> getStatusRoadTimes(){ return timeOnStatusPerRoad; }
+	public void resetStatusTimes(){ 
+		timeOnStatus = new int [13];
+		timeOnStatusPerRoad = new HashMap <String, Double> ();
+	}
 	
 	public void updateStatus(int newStatus){
-		updateStatusTimes();
+		//updateStatusTimes();
 		myStatus = newStatus;
 		this.addIntegerAttribute("status", newStatus);
 	}
 
 	// STEPPERS
 
-	public double externalStep(SimState state){
-		
-		double nextActivation = role.activate(state.schedule.getTime());//chooseActivityForTick();
-		int currentStatus = ((OfficerRole)role).getStatus();
-		if(myStatus != currentStatus)
-			updateStatus(currentStatus);
-		return nextActivation;
-	}
-	
 	public void step(SimState state){
 		
-		world.statusChanges.add(((int)state.schedule.getTime()) + "\t" + myStatus  + "\t" + this.myID  + "\t" + 
+		if(world.verbose)
+			world.statusChanges.add(((int)state.schedule.getTime()) + "\t" + myStatus  + "\t" + this.myID  + "\t" + 
 				this.role.getClass() + "\t" + this.geometry.getCoordinate().toString() + "\t" + ((MasonGeometry)this.edge.getInfo()).getStringAttribute("FID_1") + "\n");
 
+		updateStatusTimes();
+		
 		double nextActivation = role.activate(state.schedule.getTime());//chooseActivityForTick();
 		if(nextActivation <= state.schedule.getTime()){
 			nextActivation = state.schedule.getTime() + 1;
@@ -167,12 +170,6 @@ public class Officer extends Agent {
 		}
 		int currentStatus = ((OfficerRole)role).getStatus();
 		
-/*		// update status information
-		if(myStatus != currentStatus){
-			//updateStatusTimes();
-			updateStatus(currentStatus);
-		}
-	*/
 		updateStatus(currentStatus);
 
 		state.schedule.scheduleOnce(nextActivation, this);
@@ -188,20 +185,5 @@ public class Officer extends Agent {
 	public int getStatus(){ return myStatus; }
 	public OfficerRole getRole(){ return this.role;}
 	public void setRole(OfficerRole newRole){ this.role = newRole; }
-	
-	public void enterVehicle(Vehicle v){
-		v.acquireOfficer(this);
-		currentVehicle = v;
-	}
-	
-	public void leaveVehicle(){
-		if(currentVehicle == null){
-			System.out.println("ERROR: NOT IN VEHICLE");
-			return;
-		}
-		currentVehicle.loseOfficer(this);
-		currentVehicle = null;
-	}
 
-	public boolean inVehicle(){ return currentVehicle != null; }
 }

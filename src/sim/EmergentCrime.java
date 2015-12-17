@@ -16,9 +16,11 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import objects.Agent;
+import objects.CallEvent;
 import objects.Despatch;
 import objects.FirstContact;
 import objects.Officer;
+import objects.roles.TransportVanRole;
 import sim.engine.SimState;
 import sim.engine.Steppable;
 import sim.field.geo.GeomGridField;
@@ -46,9 +48,11 @@ import com.vividsolutions.jts.linearref.LengthIndexedLine;
 import ec.util.MersenneTwisterFast;
 
 public class EmergentCrime extends SimState {
+	
 	/////////////// Model Parameters ///////////////////////////////////
 	
 	private static final long serialVersionUID = 1L;
+	
 	public int grid_width = 700;
 	public int grid_height = 700;
 	public static double spatialResolution = 1;// the granularity of the simulation 
@@ -64,6 +68,9 @@ public class EmergentCrime extends SimState {
 	public double param_reportProb = .25;
 	public double param_transportRequestProb = .25;
 	public double param_redeployProb = .75;
+	
+	public double param_defaultSpeed = 200 * EmergentCrime.temporalResolution_minutesPerTick;
+	public double param_topSpeed = 1000 * EmergentCrime.temporalResolution_minutesPerTick;
 	
 	public int param_reportTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
 	public int param_responseCarTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
@@ -101,13 +108,10 @@ public class EmergentCrime extends SimState {
 	
 	/////////////// Objects //////////////////////////////////////////////
 
-//	ArrayList <ArrayList <CrimeEvent>> crimeEventRecord = new ArrayList <ArrayList <CrimeEvent>> ();
-	
 	ArrayList <Officer> officers = new ArrayList <Officer> ();
 
 	FirstContact firstContact;
 	public Despatch despatch;
-	//HashMap<MasonGeometry, TreeSet <CallEvent>> CAD = new HashMap<MasonGeometry, TreeSet <CallEvent>> ();
 	TreeSet <CallEvent> urgent_CAD = new TreeSet <CallEvent> ();
 	TreeSet <CallEvent> extended_CAD = new TreeSet <CallEvent> ();
 	
@@ -120,6 +124,8 @@ public class EmergentCrime extends SimState {
 	ArrayList <GeoNode> stationNodes;
 
 	public GeometryFactory fa = new GeometryFactory();
+	
+	BufferedWriter outputFile = null;
 	
 	long mySeed = 0;
 	
@@ -243,12 +249,8 @@ public class EmergentCrime extends SimState {
 					networkEdgeLayer.addGeometry(myInfo);
 					edgeHeatmap.put(edge, 0);
 					roadLayer.addGeometry(myInfo);
-					myInfo.addAttribute("ListEdge", edge);					
-/*					String myID = myInfo.geometry.toString() + helperIndex;
-					myInfo.addStringAttribute("myID", myID);
-					helperIndex++;
-	*/			}
-
+					myInfo.addAttribute("ListEdge", edge);
+					}
 			}
 			
 			// addendum to help with visualising decaying heatmap
@@ -347,47 +349,77 @@ public class EmergentCrime extends SimState {
 			myStatusRecorder = new StatusReporter();
 	        schedule.scheduleRepeating(0,1, myStatusRecorder, statusReporterInterval);
 	        
-/*	        schedule.scheduleRepeating(0, new Steppable(){
-
-				@Override
-				public void step(SimState state) {
-					for(Officer o: officers){
-						int myStatus = o.getStatus();
-						testStatusRecord[myStatus]++;
-					}
-					
-				}
-	        	
-	        }, 1);
-	*/	} catch (Exception e) { e.printStackTrace();}
+	        outputFile = new BufferedWriter(new FileWriter(fileName + "_output.txt"));
+	        
+	        // output header for output file
+	        outputFile.write(this.mySeed + "\t" + this.rolesDisabled + "\t" + this.param_redeployProb  + 
+	        		"\t" + this.param_reportProb + "\t" + this.param_reportTimeCommitment + "\t" + this.param_responseCarTimeCommitment + 
+	        		"\t" + this.param_transportRequestProb + "\t" + this.cadFile + "\n");
+	        
+	        
+		} catch (Exception e) { e.printStackTrace();}
 		
 		
     }
 
 	class StatusReporter implements Steppable {
 		
+		int index = 0;
+		
 		@Override
 		public void step(SimState state) {
         	int [] sumOfStatuses = new int [13];
+        	HashMap <String, Double> aggStatusRoads_CARS = new HashMap <String, Double> ();
+        	HashMap <String, Double> aggStatusRoads_VANS = new HashMap <String, Double> ();
+
         	for(Officer o: officers){
         		o.updateStatusTimes();
-        		int [] os = o.getStatusTimes();
-        		for(int i = 0; i < 13; i++){
+        	//	int [] os = o.getStatusTimes();
+        		
+        		HashMap <String, Double> myAgg = aggStatusRoads_CARS;
+        		if(o.getRole() instanceof TransportVanRole)
+        			myAgg = aggStatusRoads_VANS;
+        		
+        	/*	for(int i = 0; i < 13; i++){
         			sumOfStatuses[i] += os[i];
+
         		}
-        		o.resetStatusTimes();
+        		*/        		
+    			for(Entry <String, Double> e: o.getStatusRoadTimes().entrySet()){
+    				if(e.getValue() == 0) continue;
+    				Double aggVal = myAgg.get(e.getKey());
+    				if(aggVal == null) aggVal = 0.;
+    				myAgg.put(e.getKey(), aggVal + e.getValue());
+    			}
+
+    			o.resetStatusTimes();
         	}
     
-        	for(int i = 0; i < 13; i++){
+ /*       	for(int i = 0; i < 13; i++){
         		sumOfStatuses[i] += statusRecord[i];
         	}
         	statusRecord = sumOfStatuses;
+        	
 /*        	String result = "";
         	for(int i = 0; i < 13; i++){
         		result += sumOfStatuses[i] + "\t";
         	}
         	statusRecord += result;
-  */      }
+  */        
+    		try {
+        	for(Entry <String, Double> e: aggStatusRoads_CARS.entrySet()){
+        		String [] bits = e.getKey().split("_");
+					outputFile.write(index + "\t" + bits[0] + "\t" + bits[1] + "\t" + "CARS" + "\t" + e.getValue() + "\n");
+        	}
+        	for(Entry <String, Double> e: aggStatusRoads_VANS.entrySet()){
+        		String [] bits = e.getKey().split("_");
+        		outputFile.write(index + "\t" + bits[0] + "\t" + bits[1] + "\t" + "VANS" + "\t" + e.getValue() + "\n");
+        	}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+        	index++;
+        }
 	}
 	
 	/**
@@ -407,7 +439,7 @@ public class EmergentCrime extends SimState {
 		for(int i: patrolStationList){
 			GeoNode myNode = stationNodes.get(i);
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 			officers.add(off);				
 		}
 		
@@ -415,7 +447,7 @@ public class EmergentCrime extends SimState {
 		for(int i: reportStationList){
 			GeoNode myNode = stationNodes.get(i);
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "report");
 			officers.add(off);				
 		}
 
@@ -423,7 +455,7 @@ public class EmergentCrime extends SimState {
 		for(int i: transportStationList){
 			GeoNode myNode = stationNodes.get(i);
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "transport");
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "transport");
 			officers.add(off);				
 		}
 	}
@@ -440,7 +472,7 @@ public class EmergentCrime extends SimState {
 		for(int i: patrolStationList){
 			GeoNode myNode = stationNodes.get(i);
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 			officers.add(off);				
 		}
 		
@@ -448,7 +480,7 @@ public class EmergentCrime extends SimState {
 		for(int i: reportStationList){
 			GeoNode myNode = stationNodes.get(i);
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "report");
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "report");
 			officers.add(off);				
 		}
 
@@ -456,7 +488,7 @@ public class EmergentCrime extends SimState {
 		for(int i: transportStationList){
 			GeoNode myNode = stationNodes.get(i);
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "transport");
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "transport");
 			officers.add(off);				
 		}
 	}
@@ -471,104 +503,104 @@ public class EmergentCrime extends SimState {
 		// KENTISH TOWN
 		GeoNode myNode = stationNodes.get(3);
 		Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		Officer off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(3);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		// WEST HAMPSTEAD
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);
 		
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);
 
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);
 
 		myNode = stationNodes.get(4);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);
 		
 		// ALBANY
 
 		myNode = stationNodes.get(0);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		// HOLBORN
 		
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		myNode = stationNodes.get(2);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);				
 
 		// HAMPSTEAD
 		
 		myNode = stationNodes.get(1);
 		c = (Coordinate) myNode.geometry.getCoordinate().clone();
-		off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+		off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 		officers.add(off);
 	}
 	
@@ -577,7 +609,7 @@ public class EmergentCrime extends SimState {
 		for(int i = 0; i < 19; i++){
 			GeoNode myNode = (GeoNode) roadNodes.get(random.nextInt(roadNodes.size()));
 			Coordinate c = (Coordinate) myNode.geometry.getCoordinate().clone();
-			Officer off = new Officer("id" + random.nextLong(), c, c,  this, Officer.defaultSpeed, "patrol");
+			Officer off = new Officer("id" + random.nextLong(), c, c,  this, param_defaultSpeed, "patrol");
 			officers.add(off);							
 		}
 
@@ -644,7 +676,9 @@ public class EmergentCrime extends SimState {
 		
 		super.finish();
 		try{
-//			myStatusRecorder.step(this);
+			if(((int)schedule.getTime()) % statusReporterInterval != 0)
+				myStatusRecorder.step(this);
+			outputFile.close();
 		} catch (Exception e){
 			e.printStackTrace();
 		}
@@ -885,41 +919,6 @@ public class EmergentCrime extends SimState {
 		mySeed = number;
 	}
 		
-	public class CallEvent implements Comparable {
-
-		int grading = 0; // Grading: 0 = I, 1 = S, 2 = E, 3 = R
-		Geometry location = null;
-		int incidentNumber;
-		double time = -1;
-		int key = -1;
-		
-		public CallEvent(int grade, Geometry location, double time, int incidentNumber, int key){
-			this.time = time;//System.currentTimeMillis();
-			grading = grade;
-			this.location = location;
-			this.incidentNumber = incidentNumber;
-			this.key = key;
-		}
-		
-		@Override
-		public int compareTo(Object arg0) {
-			if(arg0 instanceof CallEvent){
-				CallEvent ce = (CallEvent) arg0;
-				if(ce.grading > grading) return -1;
-				else if(ce.time > time) return -1;
-				else if(ce.time < time) return 1;
-				else if(ce.key < key) return -1;
-				else return 0;
-			}
-			return 0;
-		}
-		
-		public Geometry getLocation(){ return location; }		
-		public int getGrade(){ return grading; }
-		public int getIncidentNumber(){ return incidentNumber; }
-		public double getTime(){ return time; }
-	}
-
 	public void readInStationLayer(String filename, String layerDescription, GeometryFactory fa){
 		try {
 			System.out.print("Reading in " + layerDescription + "...");
@@ -947,9 +946,6 @@ public class EmergentCrime extends SimState {
 		}
 	}
 
-//	ArrayList <CallEvent> callData = new ArrayList <CallEvent> ();
-//	TreeSet <CallEventWrapper> callTimes = new TreeSet <CallEventWrapper> ();
-//	TreeSet <CallEvent> callTimes = new TreeSet <CallEvent> ();
 	ArrayList <CallEvent> callTimes = new ArrayList <CallEvent> ();
 	
 
@@ -972,16 +968,13 @@ public class EmergentCrime extends SimState {
 			while ((s = d.readLine()) != null) {
 				String [] bits = s.split("\t");
 				int incidentNumber = Integer.parseInt(bits[0]);
-/*				int year = Integer.parseInt(bits[1]);
-				int month = Integer.parseInt(bits[2]);
-				int day = Integer.parseInt(bits[3]);// - 1;
-				int hour = Integer.parseInt(bits[4]);
-				int minute = Integer.parseInt(bits[5]) / 12;
-*/				
+
+				// year month day hour minute
 				Date myDate = ft.parse(bits[1] + "-" + bits[2] + "-" + bits[3] + " " + bits[4] + ":" + bits[5]);
 				
 				if(bits[7].trim().length() < 1 || bits[8].trim().length() < 1){
-	//				System.out.println("CAD record with no location information: " + s);
+					if(verbose)
+						System.out.println("CAD record with no location information: " + s);
 					continue;
 				}
 				
@@ -1000,20 +993,12 @@ public class EmergentCrime extends SimState {
 					code = 2;
 				else
 					continue;
-/*				else if(level.equals("S ")) code = 1;
-				else code = 3;
-	*/			
-//				if(Integer.parseInt(bits[0]) == 11847)
-//					System.out.println("loooong");
-				
+
 				GeoNode closestNode = getClosestGeoNode(new Coordinate(x,y), 50);
 				if(closestNode == null) 
 					continue;
 				
-//				System.out.println(closestNode.geometry.getCoordinate().distance(new Coordinate(x,y)));// + " " + bits[0]);
-//				double time = (double) (day * 1440 + hour * 60 + minute);
 				double time = (myDate.getTime() - startDate) / (this.temporalResolution_minutesPerTick * 60000);
-//				callTimes.add(new CallEventWrapper(new CallEvent(code, (Geometry) closestNode.geometry.clone()), time, incidentNumber)); // TODO BRING BACK IF UNSUCCESSFUL
 				callTimes.add(new CallEvent(code, (Geometry) closestNode.geometry.clone(), time, incidentNumber, key));
 				key++;
 				if(time < earliestTime)
@@ -1043,7 +1028,7 @@ public class EmergentCrime extends SimState {
 
 					// if there are still calls to be scheduled, schedule this event inserter to run again when the next item is called
 					if(!callTimes.isEmpty())
-						state.schedule.scheduleOnce(callTimes.get(0).time, EmergentCrime.ordering_firstContact, this);
+						state.schedule.scheduleOnce(callTimes.get(0).getTime(), EmergentCrime.ordering_firstContact, this);
 				}
 				
 			});
@@ -1080,24 +1065,6 @@ public class EmergentCrime extends SimState {
 	public void updateEdgeHeatmap(Edge e){
 		int weight = edgeHeatmap.get(e);
 		edgeHeatmap.put(e, weight + 1);
-	}
-
-	public boolean hasExtendedEvent(){
-		if(extended_CAD.isEmpty()) 
-			return false;
-		else if(extended_CAD.size() == 0)
-			return false;
-		else 
-			return true;
-	}
-	
-	public CallEvent getNextExtendedEvent(){
-		if(extended_CAD.isEmpty()) 
-			return null;
-		CallEvent result = extended_CAD.first();
-		if(result != null)
-			extended_CAD.remove(result);
-		return result;
 	}
 	
 	/**
@@ -1137,7 +1104,7 @@ public class EmergentCrime extends SimState {
 		ec.param_reportProb = Double.parseDouble(args[2]);
 		ec.param_transportRequestProb = Double.parseDouble(args[3]);
 		ec.param_reportTimeCommitment = Integer.parseInt(args[4]);
-		ec.cadFile = args[0];
+		ec.cadFile = ec.dataDirName + args[0];
 		ec.start();
 		while(ec.schedule.getTime() < 43200)
 			ec.schedule.step(ec);
