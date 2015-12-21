@@ -101,7 +101,24 @@ public class ReportCarRole extends OfficerRole {
 			}
 		}
 */
-		patrol();
+		// otherwise transition into patrolling
+		if(myActivity != activity_patrolling){
+			myActivity = activity_patrolling;
+			rolePlayer.setActivity(activity_patrolling);
+			myStatus = status_available_resumePatrol;
+		}
+		
+		if (rolePlayer.getGoal() != null && !rolePlayer.arrivedAtGoal())
+			rolePlayer.navigate(EmergentCrime.spatialResolution);
+		else {
+			GeoNode gn = (GeoNode) roadNodes.get(random.nextInt(roadNodes.size()));
+			rolePlayer.setCurrentGoal(gn.geometry.getCoordinate());
+			while (rolePlayer.getPath() == null && !rolePlayer.arrivedAtGoal()) {
+				gn = (GeoNode) roadNodes.get(random.nextInt(roadNodes.size()));
+				rolePlayer.setCurrentGoal(gn.geometry.getCoordinate());
+			}
+		}
+
 		return 1;
 
 	}
