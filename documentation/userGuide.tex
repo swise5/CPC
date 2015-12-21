@@ -1,0 +1,183 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% This is a simple template for a LaTeX document using the "article" class.
+% See "book", "report", "letter" for other types of document.
+
+\documentclass[11pt]{article} % use larger type; default would be 10pt
+
+\usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
+
+%%% PAGE DIMENSIONS
+\usepackage{geometry} % to change the page dimensions
+\geometry{a4paper} % or letterpaper (US) or a5paper or....
+% \geometry{margin=2in} % for example, change the margins to 2 inches all round
+% \geometry{landscape} % set up the page for landscape
+
+\usepackage{graphicx} % support the \includegraphics command and options
+\usepackage[parfill]{parskip}
+
+%%% PACKAGES
+\usepackage{booktabs} % for much better looking tables
+\usepackage{array} % for better arrays (eg matrices) in maths
+\usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
+\usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
+\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
+% These packages are all incorporated in the memoir class to one degree or another...
+
+%%% HEADERS & FOOTERS
+\usepackage{fancyhdr} % This should be set AFTER setting up the page geometry
+\pagestyle{fancy} % options: empty , plain , fancy
+\renewcommand{\headrulewidth}{0pt} % customise the layout...
+\lhead{}\chead{}\rhead{}
+\lfoot{}\cfoot{\thepage}\rfoot{}
+
+%%% SECTION TITLE APPEARANCE
+\usepackage{sectsty}
+\usepackage{listings}
+\allsectionsfont{\sffamily\mdseries\upshape} % (See the fntguide.pdf for font help)
+% (This matches ConTeXt defaults)
+
+%%% ToC (table of contents) APPEARANCE
+\usepackage[nottoc,notlof,notlot]{tocbibind} % Put the bibliography in the ToC
+\usepackage[titles,subfigure]{tocloft} % Alter the style of the Table of Contents
+\renewcommand{\cftsecfont}{\rmfamily\mdseries\upshape}
+\renewcommand{\cftsecpagefont}{\rmfamily\mdseries\upshape} % No bold!
+
+
+% OTHERS
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+
+%%% END Article customizations
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% BEGIN DOCUMENT %%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Guide to the ModelOfficer Library}
+\author{Sarah Wise}
+\date{} 
+
+\begin{document}
+\maketitle
+
+This guide is an overview of how to utilise the ModelOfficer package, developed as a part of the Crime, Policing, and Citizenship Project by the SpaceTimeLab of the Department of Civil, Environmental and Geomatic Engineering, University College London. The data associated with the project has been withheld for reasons of security, but suitable dummy data is provided for the purposes of demonstration.
+
+I include here both a guideline to the pieces of code as well as a guide how to run them. All of the Java was developed using the Eclipse IDE. I also include an overview of my setup on \href{https://wiki.rc.ucl.ac.uk/wiki/Category:Legion_User_Guide}{Legion} to faciliate the process for UCL researchers.
+
+For the interested and experienced Java programmer, the code includes specific lines that can be uncommented to change aspects of the visualisation or reporting.
+
+%%% INPUT DATA %%%%%%%%%%%%%%%%
+
+
+\section{Input Data Processing}
+
+\subsection{Formatting the input data}
+Make sure networks are mildly connected!! If network is small, look for discontinuities!!
+
+
+\subsection{PathAnalysis}
+
+%%% THE ABM %%%%%%%%%%%%%%%%%%
+
+\section{EmergentCrime}
+
+The core of the package is the EmergentCrime class. For more information about the ABM, see \href{http://onlinelibrary.wiley.com/journal/10.1111/(ISSN)1467-9671}{Wise and Cheng, in press}.
+
+\subsection{Parameters}
+
+
+
+\subsection{Running the EmergentCrime class directly}
+
+\begin{table}[]
+\centering
+\caption{Table with the command line parameters to pass to a run of EmergentCrime}
+\label{my-label}
+\begin{tabular}{p{1cm}p{4cm}p{6cm}} %@{}lll@{}
+\toprule
+{\color[HTML]{C0C0C0} } Order & {\color[HTML]{C0C0C0} } Parameter & {\color[HTML]{C0C0C0} } Description \\ \midrule
+1  &  service calls data file & file with information about calls for service - more info TK \\
+2  &  tasking type being studied &  integer indicating whether role types are turned on or off \\
+3  &  report probability &  double (0-1) with probability of needing to make a report after a call for service \\
+4  &  transport request prob & double (0-1) with probability of needing a transport van to support a call for service \\
+5  &  report time commitment &  integer number of minutes required to carry out a call for service\\
+6  & seed &  seed to the random number generator. Give same seed to ensure usage of exactly the same random numbers \\
+7  &  data directory &  directory in which supporting data can be found \\ 
+8 & output file info & prefix with directory and filename with which to output the results of the simulation \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Setup on Legion}
+
+\begin{lstlisting}
+#$ -S /bin/bash
+#$ -l h_rt=0:30:0
+#$ -l mem=15G
+#$ -t 1-90
+#$ -N EmergentCrime
+#$ -wd /home/uceswis/Scratch/cpc
+cd $TMPDIR
+number=$SGE_TASK_ID
+paramfile=/home/uceswis/Scratch/cpc/sweepParams_jp2.txt
+index=`sed -n ${number}p $paramfile | awk '{print $1}'`
+arg1=`sed -n ${number}p $paramfile | awk '{print $2}'`
+arg2=`sed -n ${number}p $paramfile | awk '{print $3}'`
+arg3=`sed -n ${number}p $paramfile | awk '{print $4}'`
+arg4=`sed -n ${number}p $paramfile | awk '{print $5}'`
+arg5=`sed -n ${number}p $paramfile | awk '{print $6}'`
+arg6=`sed -n ${number}p $paramfile | awk '{print $7}'`
+arg7=`sed -n ${number}p $paramfile | awk '{print $8}'`
+arg8=`sed -n ${number}p $paramfile | awk '{print $9}'`
+
+java -jar -Xmx24g /home/uceswis/cpc/EmergentCrime.jar 
+$arg1 $arg2 $arg3 $arg4 $arg5 $arg6 $arg7 $arg8
+
+\end{lstlisting}
+
+\subsection{EmergentCrimeWithUI}
+
+Used for single runs of the model with visualisation. Takes the same parameters as the EmergentCrime class itself, but provides a visualisation of the simulation run. 
+
+\subsection{EmergentCrimeWithGUI}
+
+\subsection{StrategicDemo}
+
+%%% VALIDATION %%%%%%%%%%%%%%%
+
+
+\section{Validation}
+
+The validation presented here is an approach to validation of temporally rich spatio-temporal-group dynamics, which will be explored more thoroughly in the forthcoming (Wise and Cheng, in development). In essence, it breaks the multi-dimensional space of time, space, and agent aggregation into directly comparable units, measuring some parameter as its exists within each unit, and aggregating the likelihood values of the gold standard data against the range of simulated values for each unit.
+
+
+\subsection{Running the code}
+
+I found it most convenient to dump the many runs of this high-intensity process on a high-performance machine somewhere else and let it chug away. The individual calls to the 
+
+\subsection{SparseCubeValidator}
+
+The most important aspect of the SparseCubeValidator object is its ability to modularly switch out metrics for comparison. So, for example, the model as uploaded contains a metric which compares the gold standard value with the median simulated value for the unit - it could easily be switched out for whatever the user desires.
+
+
+
+\begin{lstlisting}
+java -Xmx10g -classpath /home/uceswis/Scratch/cpc/SparseCubeValidator.jar 
+supplemental.SparseCubeValidator /home/uceswis/Scratch/cpc/
+ noCAD_cadMarch2010 /home/uceswis/goldStandardRecord.txt 
+/home/uceswis/results/noCAD 013 
+\end{lstlisting}
+
+
+\subsection{ValidationVisualisation}
+
+
+
+\end{document}

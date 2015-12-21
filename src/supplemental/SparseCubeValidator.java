@@ -26,7 +26,7 @@ public class SparseCubeValidator {
 	
 	int numRuns = 0;
 	
-	public SparseCubeValidator(String dirfile, String filegroup, String goldfile, String outputfile, String dimensions){
+	public SparseCubeValidator(String dirfile, String filegroup, String goldfile, String outputfileAvg, String outputfileExt, String dimensions, double threshold){
 		
 		try {
 			// SETUP
@@ -45,8 +45,9 @@ public class SparseCubeValidator {
 			System.out.println(simulationResults.size());
 
 			// comparison and outputting
-			BufferedWriter w = new BufferedWriter(new FileWriter(outputfile));
-			compareGoldAndSimulated(w, dims);
+			BufferedWriter w = new BufferedWriter(new FileWriter(outputfileAvg));
+			BufferedWriter ext = new BufferedWriter(new FileWriter(outputfileExt));
+			compareGoldAndSimulated(w, ext, dims, threshold);
 			w.close();
 			
 		} catch (IOException e) {
@@ -59,15 +60,15 @@ public class SparseCubeValidator {
 	////////////// COMPARISONS //////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////
 
-	public void compareGoldAndSimulated(BufferedWriter w, int [] dims){
+	public void compareGoldAndSimulated(BufferedWriter w, BufferedWriter e, int [] dims, double threshold){
 		try {
 
 			int index = 0;
 			
 			for (String s : goldStandard.keySet()) {
 				double d = metric(goldStandard.get(s), simulationResults.get(s));
-				if(Math.abs(d) > 1000)
-					System.out.println(s + "/t" + d);
+				if(Math.abs(d) > threshold)
+					e.write(s + "/t" + String.format("%.1f", d) + "/n");
 				w.write(String.format("%.1f", d) + ", ");
 				simulationResults.remove(s);
 				index++;
@@ -75,8 +76,8 @@ public class SparseCubeValidator {
 
 			for (String s : simulationResults.keySet()) {
 				double d = metric(0, simulationResults.get(s));
-				if(Math.abs(d) > 1000)
-					System.out.println(s + "/t" + d);
+				if(Math.abs(d) > threshold)
+					e.write(s + "/t" + String.format("%.1f", d) + "/n");
 				w.write(String.format("%.1f", d) + ", ");
 				index++;
 			}
@@ -92,8 +93,8 @@ public class SparseCubeValidator {
 			if(index < totalPossibleUnits)
 				w.write("0.");
 			
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException except) {
+			except.printStackTrace();
 		}
 	}
 	
@@ -285,6 +286,6 @@ public class SparseCubeValidator {
 	}*/
 	
 	public static void main(String [] args){
-		SparseCubeValidator cv = new SparseCubeValidator(args[0], args[1], args[2], args[3], args[4]);
+		SparseCubeValidator cv = new SparseCubeValidator(args[0], args[1], args[2], args[3], args[4], args[5], Double.parseDouble(args[6]));
 	}
 }

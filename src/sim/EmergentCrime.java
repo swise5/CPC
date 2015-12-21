@@ -72,21 +72,24 @@ public class EmergentCrime extends SimState {
 	public double param_defaultSpeed = 200 * EmergentCrime.temporalResolution_minutesPerTick;
 	public double param_topSpeed = 1000 * EmergentCrime.temporalResolution_minutesPerTick;
 	
+	public boolean verbose = false;
+	public int taskingTypeBeingStudied = 1; // 1 = enabled, 0 = disabled, -1 = random stations
+
+	
 	public int param_reportTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
 	public int param_responseCarTimeCommitment = (int)(60 / temporalResolution_minutesPerTick);
 
 
 	public String cadFile = "/Users/swise/workspace/CPC/data/CAD/cadMarch2011.txt";
 	SimpleDateFormat ft = new SimpleDateFormat ("yyyy-MM-dd HH:mm");
-	String myStartDate = "2011-03-01 0:00 GMT";
+	public String myStartDate = "2011-03-01 0:00 GMT";
 
 	/////////////// Data Sources ///////////////////////////////////////
 	
-	///// TEMPORARY ///////////////////////////
 	public String dataDirName = "/Users/swise/workspace/CPC/data/"; // must end in /
-	public String fileName = "emergentCrime"; // template filename 
+	public String fileName = "emergentCrime"; // prefix filename for writing out of results
 	
-	//// END TEMPORARY////////////////////////
+	//// Layers ////////////////////////
 	
 	public GeomVectorField baseLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField roadLayer = new GeomVectorField(grid_width, grid_height);
@@ -95,27 +98,28 @@ public class EmergentCrime extends SimState {
 	public GeomVectorField networkEdgeLayer = new GeomVectorField(grid_width, grid_height);	
 	public GeomVectorField majorRoadNodesLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField trafficLayer = new GeomVectorField(grid_width, grid_height);
-	
-	public GeomVectorField boroughLayer = new GeomVectorField(grid_width, grid_height);
 	public GeomVectorField officerLayer = new GeomVectorField(grid_width, grid_height);
-	public GeomVectorField vehicleLayer = new GeomVectorField(grid_width, grid_height);
-	
+
+	// for visualation purposes
 	public GeomVectorField crimeLayer = new GeomVectorField(grid_width, grid_height);
-	
-	public GeomGridField heatmap = new GeomGridField();
-	
+	public GeomGridField heatmap = new GeomGridField();	
 	public GeomVectorField heatEdges = new GeomVectorField(grid_width, grid_height);
 	
 	/////////////// Objects //////////////////////////////////////////////
 
+	
+	// all officers
+	
 	ArrayList <Officer> officers = new ArrayList <Officer> ();
 
+	// handling the calls for service
+	
 	FirstContact firstContact;
 	public Despatch despatch;
 	TreeSet <CallEvent> urgent_CAD = new TreeSet <CallEvent> ();
 	TreeSet <CallEvent> extended_CAD = new TreeSet <CallEvent> ();
-	
-	ArrayList <Integer> travelTimes = new ArrayList <Integer> ();
+
+	// helper objects for holding spatial information
 	
 	public Bag roadNodes = new Bag();
 	Bag districtNodes = new Bag();
@@ -123,26 +127,20 @@ public class EmergentCrime extends SimState {
 	HashMap <MasonGeometry, ArrayList <GeoNode>> localNodes;
 	ArrayList <GeoNode> stationNodes;
 
+	// underpinning structures
 	public GeometryFactory fa = new GeometryFactory();
-	
-	BufferedWriter outputFile = null;
-	
 	long mySeed = 0;
-	
 	Envelope MBR = null;
 	
-	public boolean verbose = false;
-	public int taskingTypeBeingStudied = 1; // 1 = enabled, 0 = disabled, -1 = random stations
-		
-	/////////////// END Objects //////////////////////////////////////////
-
-	public HashMap <Edge, Integer> edgeHeatmap = new HashMap <Edge, Integer> ();
+	// reporter objects
 	
+	BufferedWriter outputFile = null;
 	public ArrayList <String> statusChanges = new ArrayList <String> ();
 	StatusReporter myStatusRecorder;
 	public int statusReporterInterval = 480;
-	public int [] statusRecord = new int [13];
-	public int [] testStatusRecord = new int [13];
+	public int [] statusRecord = new int [13];	
+	public HashMap <Edge, Integer> edgeHeatmap = new HashMap <Edge, Integer> ();
+	
 	
 	///////////////////////////////////////////////////////////////////////////
 	/////////////////////////// BEGIN functions ///////////////////////////////
@@ -274,8 +272,6 @@ public class EmergentCrime extends SimState {
 			trafficLayer.setMBR(MBR);
 			heatEdges.setMBR(MBR);
 			officerLayer.setMBR(MBR);
-			vehicleLayer.setMBR(MBR);
-
 
 			/////////////////////
 			////////////////////
@@ -1068,7 +1064,7 @@ public class EmergentCrime extends SimState {
 	}
 	
 	/**
-	 * To run the model without visualization
+	 * To run the model without visualization (headless mode)
 	 */
 	public static void main(String[] args)
     {
