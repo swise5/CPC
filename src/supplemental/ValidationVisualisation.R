@@ -1,46 +1,48 @@
+library(maptools)
+
 # GENERAL IDEA: plot both the "normal" and "extreme" values
 # spatial, temporal, social, by status
 
 # histogram of the overall values
-plotAverageVals <- function(filegroup, dirname){
+plotAverageVals <- function(fileprefix, dirfile){
 
 	par(mar=c(3,3,3,3))
 	par(mfrow=c(3,5))
 
 	# SPATIAL
 	
-	s_data <- scan(file=paste(dirname, filegroup, "_1.txt", sep=""), what=double(1), sep=",")
+	s_data <- na.omit(scan(file=paste(dirfile, fileprefix, "_1.txt", sep=""), what=double(1), sep=","))
 	plotHisto(s_data, "Spatial")
 	
 	plot.new() # skip a position
 
 	# SPATIO-TEMPORAL
 
-	s_data <- scan(file=paste(dirname, filegroup, "_01.txt", sep=""), what=double(1), sep=",")
+	s_data <- na.omit(scan(file=paste(dirfile, fileprefix, "_01.txt", sep=""), what=double(1), sep=","))
 	plotHisto(s_data, "Spatio-Temporal")
 	
 	plot.new() # skip a position
 	
 	# TEMPORAL
 	
-	s_data <- scan(file=paste(dirname, filegroup, "_0.txt", sep=""), what=double(1), sep=",")
+	s_data <- na.omit(scan(file=paste(dirfile, fileprefix, "_0.txt", sep=""), what=double(1), sep=","))
 	plotHisto(s_data, "Temporal")
 
 	# S-G
 
 	plot.new()	# skip a position
 
-	s_data <- scan(file=paste(dirname, filegroup, "_13.txt", sep=""), what=double(1), sep=",")
+	s_data <- na.omit(scan(file=paste(dirfile, fileprefix, "_13.txt", sep=""), what=double(1), sep=","))
 	plotHisto(s_data, "Spatio-Social")
 
 	# S-T-G
 	
-	s_data <- scan(file=paste(dirname, filegroup, "_013.txt", sep=""), what=double(1), sep=",")
+	s_data <- na.omit(scan(file=paste(dirfile, fileprefix, "_013.txt", sep=""), what=double(1), sep=","))
 	plotHisto(s_data, "Spatio-Temporal-Social")
 
 	# T-G
 
-	s_data <- scan(file=paste(dirname, filegroup, "_03.txt", sep=""), what=double(1), sep=",")
+	s_data <- na.omit(scan(file=paste(dirfile, fileprefix, "_03.txt", sep=""), what=double(1), sep=","))
 	plotHisto(s_data, "Temporal-Social")
 
 	plot.new() # skip a position
@@ -50,34 +52,34 @@ plotAverageVals <- function(filegroup, dirname){
 	plot.new() # skip a position
 	plot.new() # skip a position
 
-	s_data <- scan(file=paste(dirname, filegroup, "_3.txt", sep=""), what=double(1), sep=",")
+	s_data <- na.omit(scan(file=paste(dirfile, fileprefix, "_3.txt", sep=""), what=double(1), sep=","))
 	plotHisto(s_data, "Social")
 }
 
 
 
 	
-	plot.new() # skip a position
+	# plot.new() # skip a position
 	
-	# S-G
+	# # S-G
 
-	plot.new()	# skip a position
+	# plot.new()	# skip a position
 
-	s_data <- scan(file=paste(dirname, filegroup, "_13.txt", sep=""), what=double(1), sep=",")
-	plotHisto(s_data, "Spatio-Social")
+	# s_data <- scan(file=paste(dirname, filegroup, "_13.txt", sep=""), what=double(1), sep=",")
+	# plotHisto(s_data, "Spatio-Social")
 
-	# S-T-G
+	# # S-T-G
 	
-	s_data <- scan(file=paste(dirname, filegroup, "_013.txt", sep=""), what=double(1), sep=",")
-	plotHisto(s_data, "Spatio-Temporal-Social")
+	# s_data <- scan(file=paste(dirname, filegroup, "_013.txt", sep=""), what=double(1), sep=",")
+	# plotHisto(s_data, "Spatio-Temporal-Social")
 
-	# GROUP
+	# # GROUP
 	
-	plot.new() # skip a position
-	plot.new() # skip a position
+	# plot.new() # skip a position
+	# plot.new() # skip a position
 
-	s_data <- scan(file=paste(dirname, filegroup, "_3.txt", sep=""), what=double(1), sep=",")
-	plotHisto(s_data, "Social")	
+	# s_data <- scan(file=paste(dirname, filegroup, "_3.txt", sep=""), what=double(1), sep=",")
+	# plotHisto(s_data, "Social")	
 
 
 # analysis-specific view of extreme values
@@ -105,10 +107,10 @@ plotHisto <- function(x, title){
 	if(length(x) > 100){
 		hist.data = hist(x, breaks="Scott", plot=FALSE) # max(length(x)/10, 3)
 		hist.data$counts = log10(hist.data$counts)
-		plot(hist.data, ylab='log(Count)', ylim=c(0,max(hist.data$counts)), xlim=c(-6000,6000), main=title)		
+		plot(hist.data, ylab='log(Count)', ylim=c(0, max(hist.data$counts)), xlim=c(-10,10), main=title)		
 	}
 	else{
-		stripchart(x, method="stack", pch=19, main=title, xlim=c(-6000,6000), ylim=c(0,max(x)))
+		stripchart(x, method="stack", pch=19, main=title, xlim=c(-10,10), ylim=c(0,max(x)))
 	}
 }
 
@@ -135,13 +137,13 @@ plotSpace <- function(x, network){
 
 # SETUP
 
-dirfile <- "/Users/swise/workspace/CPC/data/OUTPUTFROMLEGION/extremes/"
+dirfile <- "/Users/swise/workspace/ModelOfficer/dummyData/residuals/"
 fileprefix <- "base_cadMarch2011"
 fileprefix <- "noRoles_cadMarch2011"
 fileprefix <- "noCAD_cadMarch2010"
 
 # cex for lines!!!!
-camden <- readShapeLines(fn="/Users/swise/workspace/CPC/data/itn/camden_itn_buff100pl2.shp", proj4string=CRS("+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs"))
+camden <- readShapeLines(fn="/Users/swise/workspace/ModelOfficer/dummyData/itn/camden_itn_buff100pl2.shp", proj4string=CRS("+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs"))
 
 
 png("/Users/swise/blah.png", width=1200, height=800, res=60)

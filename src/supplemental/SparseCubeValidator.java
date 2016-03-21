@@ -25,6 +25,7 @@ public class SparseCubeValidator {
 	HashMap <String, Double> goldStandard = new HashMap <String, Double> ();
 	
 	int numRuns = 0;
+	int totalUnits = 0;
 	
 	public SparseCubeValidator(String dirfile, String filegroup, String goldfile, String outputfileAvg, String outputfileExt, String dimensions, double threshold){
 		
@@ -36,7 +37,13 @@ public class SparseCubeValidator {
 			for(int i = 0; i < dimensions.length(); i++){
 				dims[i] = Integer.parseInt(dimensions.substring(i, i+1));
 			}
-			
+	
+			int [] dimLengths = new int [] {90, 6018, 13, 2};
+			int totalPossibleUnits = 1;
+			for(int i: dims)
+				totalPossibleUnits *= dimLengths[i];
+			totalUnits = totalPossibleUnits;
+
 			// read in the files
 			readInGoldStandard(goldfile, dims);
 			readInSimulationResults(dirfile, ".txt", filegroup, dims);
@@ -47,8 +54,9 @@ public class SparseCubeValidator {
 			// comparison and outputting
 			BufferedWriter w = new BufferedWriter(new FileWriter(outputfileAvg));
 			BufferedWriter ext = new BufferedWriter(new FileWriter(outputfileExt));
-			compareGoldAndSimulated(w, ext, dims, threshold);
+			compareGoldAndSimulatedLogged(w, ext, dims, threshold);
 			w.close();
+			ext.close();
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -82,15 +90,11 @@ public class SparseCubeValidator {
 				index++;
 			}
 
-			int [] dimLengths = new int [] {90, 6018, 13, 2};
-			int totalPossibleUnits = 1;
-			for(int i: dims)
-				totalPossibleUnits *= dimLengths[i];
-			while(index < totalPossibleUnits - 1){
+			while(index < totalUnits - 1){
 				w.write("0., ");
 				index++;
 			}
-			if(index < totalPossibleUnits)
+			if(index < totalUnits)
 				w.write("0.");
 			
 		} catch (IOException except) {
@@ -98,6 +102,73 @@ public class SparseCubeValidator {
 		}
 	}
 	
+	
+	public void compareGoldAndSimulatedLogged(BufferedWriter w, BufferedWriter e, int [] dims, double threshold){
+		try {
+
+			int index = 0;
+			
+			//https://en.wikipedia.org/wiki/Standard_deviation#Corrected_sample_standard_deviation
+			// first, take the log of each simulated duration unit and calculate the average logged durations
+			// keep the overall mean value around
+			HashMap <String, Double> meanLoggedDurations = new HashMap <String, Double> ();
+			Double loggedMean = 0.;
+			for (String s : simulationResults.keySet()) {
+				Double temp = 0.;
+				ArrayList <Double> vals = simulationResults.get(s);
+				for(Double d: vals){
+					temp += Math.log10(d + 1); // make sure it's not zero
+				}
+				Double myLoggedMean = temp / numRuns;
+				loggedMean += myLoggedMean; // don't need to correct further because logged values of non-runs are just 0
+				meanLoggedDurations.put(s, myLoggedMean);
+			}
+			loggedMean /= totalUnits;
+			
+			// given this average logged duration per unit, calculate the standard deviation of these logged values
+			Double stdDev = 0.;
+			for(String s: meanLoggedDurations.keySet()){
+				stdDev += Math.pow(meanLoggedDurations.get(s) - loggedMean, 2);
+			}
+			
+			stdDev += (totalUnits - meanLoggedDurations.size()) * Math.pow(loggedMean, 2); // correct for any excluded units
+			stdDev = Math.sqrt(stdDev / (totalUnits - 1));
+			
+			// with these two values in hand, go through the gold standard keyset and calculate the residuals of
+			// the logged gold standard versus the population of simulated average logged durations
+			
+			for (String s : goldStandard.keySet()) {
+				Double simResult = meanLoggedDurations.get(s);
+				if(simResult == null) simResult = 0.;
+				else
+					meanLoggedDurations.remove(s);
+				double d = (Math.log10(goldStandard.get(s)) - simResult) / stdDev;
+				if(Math.abs(d) > threshold)
+					e.write(s + "\t" + String.format("%.1f", d) + "\n");
+				w.write(String.format("%.1f", d) + ", ");
+				index++;
+			}
+
+			for (String s : meanLoggedDurations.keySet()) {
+				double d = meanLoggedDurations.get(s) / stdDev;
+				if(Math.abs(d) > threshold)
+					e.write(s + "\t" + String.format("%.1f", d) + "\n");
+				w.write(String.format("%.1f", d) + ", ");
+				index++;
+			}
+
+			int [] dimLengths = new int [] {90, 6018, 13, 2};
+			while(index < totalUnits - 1){
+				w.write("0., ");
+				index++;
+			}
+			if(index < totalUnits)
+				w.write("0.");
+			
+		} catch (IOException except) {
+			except.printStackTrace();
+		}
+	}
 	/////////////////////////////////////////////////////////////////////////////////
 	////////////// SETUP ////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////
